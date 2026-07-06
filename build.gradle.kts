@@ -16,20 +16,22 @@ val quarkusPlatformVersion: String by project
 
 dependencies {
     implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
-    implementation("io.quarkus:quarkus-jdbc-mariadb")
-    implementation("io.quarkus:quarkus-rest-jackson")
-    implementation("io.quarkus:quarkus-smallrye-health")
-    implementation("io.quarkus:quarkus-hibernate-validator")
-    implementation("io.quarkus:quarkus-smallrye-jwt")
-    implementation("io.quarkus:quarkus-flyway")
-    implementation("io.quarkus:quarkus-smallrye-openapi")
+
     implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-logging-json")
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkus:quarkus-hibernate-orm")
-    implementation("io.quarkus:quarkus-rest")
+
+    implementation("io.quarkus:quarkus-rest-jackson")
+    implementation("io.quarkus:quarkus-hibernate-validator")
+    implementation("io.quarkus:quarkus-smallrye-openapi")
+
+    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
+    implementation("io.quarkus:quarkus-jdbc-mariadb")
+    implementation("io.quarkus:quarkus-flyway")
+
+    implementation("io.quarkus:quarkus-smallrye-jwt")
+    implementation("io.quarkus:quarkus-smallrye-health")
+    implementation("io.quarkus:quarkus-logging-json")
+
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("io.rest-assured:rest-assured")
 }
@@ -54,4 +56,8 @@ kotlin {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
         javaParameters = true
     }
+}
+
+tasks.withType<Test> {
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
