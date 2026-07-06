@@ -1,41 +1,58 @@
 # Gradle
 .gradle/
 build/
+out/
+
+# Quarkus
+.quarkus/
+target/
+*.runner
+*-runner
+*-runner.jar
+
+# Native image
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
 
 # Eclipse
 .project
 .classpath
 .settings/
-bin/
 
-# IntelliJ
-.idea
-*.ipr
-*.iml
-*.iws
-
-# NetBeans
-nb-configuration.xml
-
-# Visual Studio Code
-.vscode
-.factorypath
-
-# OSX
+# OS
 .DS_Store
+Thumbs.db
+desktop.ini
 
-# Vim
+# Kotlin
+.kotlin/
+
+# Test / coverage
+coverage/
+jacoco.exec
+
+# Temporary files
+*.tmp
+*.bak
 *.swp
 *.swo
-
-# patch
-*.orig
-*.rej
-
-# Local environment
-.env
-
-# Plugin directory
-/.quarkus/cli/plugins/
-# TLS Certificates
-.certs/
