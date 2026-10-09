@@ -2,16 +2,17 @@ package br.com.brunno.features.auth.application
 
 import br.com.brunno.features.auth.domain.UserRole
 import jakarta.enterprise.context.ApplicationScoped
-import jakarta.ws.rs.NotAuthorizedException
+import io.quarkus.arc.profile.IfBuildProfile
 
 @ApplicationScoped
+@IfBuildProfile(anyOf = ["dev", "test"])
 class LoginUseCase {
 
     fun execute(command: LoginCommand): LoginResult {
         val email = command.email.trim().lowercase()
 
         if (email != "admin@local.dev" || command.password != "admin123") {
-            throw NotAuthorizedException("Invalid credentials")
+            throw InvalidCredentialsException()
         }
 
         return LoginResult(

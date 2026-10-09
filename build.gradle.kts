@@ -61,3 +61,11 @@ kotlin {
 tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+    systemProperty(
+        "java.util.logging.manager",
+        "org.jboss.logmanager.LogManager"
+    )
+}
