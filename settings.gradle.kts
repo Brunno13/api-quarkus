@@ -1,13 +1,16 @@
 pluginManagement {
-    val quarkusPluginVersion: String by settings
-    val quarkusPluginId: String by settings
+    val quarkusPluginVersion = providers.gradleProperty("quarkusPluginVersion").get()
+    val quarkusPluginId = providers.gradleProperty("quarkusPluginId").get()
+
     repositories {
         mavenCentral()
         gradlePluginPortal()
         mavenLocal()
     }
+
     plugins {
         id(quarkusPluginId) version quarkusPluginVersion
     }
 }
-rootProject.name="api-quarkus"
+
+rootProject.name = "api-quarkus"
