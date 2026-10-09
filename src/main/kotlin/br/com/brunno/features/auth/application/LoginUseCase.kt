@@ -1,6 +1,6 @@
 package br.com.brunno.features.auth.application
 
-import br.com.brunno.features.auth.domain.UserRole
+import br.com.brunno.features.users.domain.UserRole
 import jakarta.enterprise.context.ApplicationScoped
 import io.quarkus.arc.profile.IfBuildProfile
 

@@ -1,4 +1,4 @@
-package br.com.brunno.features.auth.domain
+package br.com.brunno.features.users.domain
 
 enum class UserRole {
     USER,

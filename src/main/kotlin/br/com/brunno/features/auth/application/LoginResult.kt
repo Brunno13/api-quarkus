@@ -1,6 +1,6 @@
 package br.com.brunno.features.auth.application
 
-import br.com.brunno.features.auth.domain.UserRole
+import br.com.brunno.features.users.domain.UserRole
 
 data class LoginResult(
     val accessToken: String,

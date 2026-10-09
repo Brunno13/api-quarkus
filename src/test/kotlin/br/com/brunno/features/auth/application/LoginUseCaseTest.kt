@@ -1,6 +1,6 @@
 package br.com.brunno.features.auth.application
 
-import br.com.brunno.features.auth.domain.UserRole
+import br.com.brunno.features.users.domain.UserRole
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
