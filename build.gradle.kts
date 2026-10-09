@@ -1,7 +1,6 @@
 plugins {
     kotlin("jvm") version "2.4.10"
     kotlin("plugin.allopen") version "2.4.10"
-    kotlin("plugin.jpa") version "2.4.10"
     id("io.quarkus")
 }
 
@@ -24,9 +23,7 @@ dependencies {
     implementation("io.quarkus:quarkus-hibernate-validator")
     implementation("io.quarkus:quarkus-smallrye-openapi")
 
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-mariadb")
-    implementation("io.quarkus:quarkus-flyway")
+    implementation("io.quarkus:quarkus-mongodb-panache-kotlin")
 
     implementation("io.quarkus:quarkus-smallrye-jwt")
     implementation("io.quarkus:quarkus-smallrye-health")
@@ -51,7 +48,6 @@ java {
 allOpen {
     annotation("jakarta.ws.rs.Path")
     annotation("jakarta.enterprise.context.ApplicationScoped")
-    annotation("jakarta.persistence.Entity")
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
