@@ -2,7 +2,7 @@
 
 Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-> **Current stage:** Early foundation. The authentication endpoint currently uses a **development mock**, not production authentication. Database integration, real JWT/RBAC, automated tests, security gates, and CI/CD are planned, not yet validated.
+> **Current stage:** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21** (class-file version 65). **Eight unit/API tests pass**, and the mock login was verified unavailable in a production-profile smoke test before the toolchain upgrade. **MongoDB**, real JWT/RBAC, Detekt/security gates, and CI/CD integration remain planned.
 
 ---
 
@@ -12,36 +12,36 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 - **Modular Architecture:** Feature-first organization with pragmatic Clean Architecture (`api`, `application`, `domain`, `infrastructure`).
 - **REST & API Documentation:** Quarkus REST, Jackson, Bean Validation, OpenAPI / Swagger UI.
 - **Dependency Injection:** CDI / Arc with constructor-based dependencies.
-- **Development Bootstrap:** Local Quarkus dev mode without requiring Docker or MariaDB for database-independent endpoints.
-- **Authentication Foundation:** Mock login endpoint for architectural prototyping; secure JWT / RBAC remains on the roadmap.
-- **Quality-First Direction:** Unit and integration tests, business coverage, Detekt, CPD, Gitleaks, Opengrep, and Trivy.
+- **Development Bootstrap:** Local Quarkus dev mode and current unit/API tests run without requiring Docker or a database.
+- **Authentication Foundation:** Profile-limited mock login (`dev`/`test`), standardized HTTP 401 errors, and Bean Validation; secure JWT / RBAC remains on the roadmap.
+- **Quality-First Direction:** Eight passing JUnit / REST Assured tests and `gradle check`; Detekt, coverage, CPD, Gitleaks, Opengrep, and Trivy are planned gates.
 - **Portable Delivery:** Woodpecker CI and OCI containers, with builds separated from runtime hosts; target architectures are validated per release.
 
 ---
 
 ## 🗺️ Project Roadmap
 
-### ✅ Completed (reported in the repository inventory)
+### ✅ Completed (validated checkpoints)
 
-- [x] Kotlin / Gradle Kotlin DSL / Quarkus project bootstrap.
-- [x] REST, Jackson, CDI, validation, OpenAPI / Swagger, and health extensions configured.
-- [x] `GET /status` endpoint and basic `/q/health` response.
-- [x] Feature-first folder structure for `auth` and shared code.
-- [x] `POST /auth/login` mock implementation committed (`c6813a7`); **not production-safe**.
-- [x] Local development profile with database and Dev Services disabled.
+- [x] Kotlin / Gradle Kotlin DSL / Quarkus project bootstrap and feature-first structure.
+- [x] Quarkus REST, Jackson, CDI, Bean Validation, Swagger/OpenAPI, Health, and `GET /status`.
+- [x] `POST /auth/login` as a **development/test-only mock**, with a standardized HTTP 401 response for invalid credentials.
+- [x] Local `dev`/`test` profiles run database-independent code and tests without Docker.
+- [x] Four unit tests (`LoginUseCaseTest`) and four HTTP tests (`AuthResourceTest`): **8 passed, 0 failures**.
+- [x] `clean check` and JVM packaging validated after upgrades to **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**.
+- [x] Java 21 bytecode verified (`major version: 65`); toolchain upgrade pushed in commit `8d5fa0b`.
+- [x] Mock endpoint returned HTTP 404 in an earlier production-profile smoke test with the legacy database disabled; **revalidate after persistence migration**.
 
 ### 🔜 Next Steps
 
-- [ ] Audit current sources, build, application configuration, and API behavior.
+- [ ] Replace the unused MariaDB/JPA/Flyway dependencies and configuration with **MongoDB Panache Kotlin**, using repository adapters and domain-independent contracts.
+- [ ] Add MongoDB integration tests, document/index evolution, and a secure production connection strategy; keep database-free tests available locally.
+- [ ] Integrate **Detekt** (required), business coverage, CPD, Gitleaks, Opengrep, Trivy, and architecture checks; establish measured baselines and verify failing paths.
 - [ ] Centralize template identity and introduce repeatable fork configuration (`--check` / `--apply`).
-- [ ] Define architecture boundaries, consistent errors, and production-safe environment handling.
-- [ ] Add unit / API tests and a measured coverage baseline.
-- [ ] Implement and validate Detekt, CPD, Gitleaks, Opengrep, Trivy, and architecture gates.
-- [ ] Integrate MariaDB, Panache repositories, and Flyway migrations.
-- [ ] Replace mock authentication with password hashing, signed JWT, RBAC, refresh tokens, and session controls.
-- [ ] Build self-hosted Woodpecker pipelines and publish versioned OCI images.
+- [ ] Replace mock authentication with secure password hashing, signed JWT, RBAC, refresh tokens, and session controls.
+- [ ] Implement self-hosted Woodpecker pipelines, target-platform OCI image publication, and deploy smoke tests.
 - [ ] Harden readiness, logging, observability, and production configuration.
-- [ ] Evaluate Native Image only after measuring JVM runtime and supporting target-architecture builds.
+- [ ] Evaluate Native Image after measuring JVM runtime and validating target-architecture builds.
 
 ---
 
@@ -49,17 +49,17 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 
 | Area | Technology | Status |
 |---|---|---|
-| Language & Build | Kotlin, Gradle Kotlin DSL, JDK 17 bytecode target | Configured |
-| Framework & DI | Quarkus REST, Jackson, CDI / Arc | Configured |
+| Language & Build | **Kotlin 2.4.10**, **Gradle 9.8.1**, **Java 21 bytecode** | Validated |
+| Framework & DI | **Quarkus 3.40.1 LTS**, REST, Jackson, CDI / Arc | Validated |
 | Validation & Docs | Hibernate Validator, SmallRye OpenAPI / Swagger | Configured |
-| Database | MariaDB, Hibernate ORM Panache Kotlin, Flyway | Dependencies configured; integration pending |
-| Authentication | SmallRye JWT, role-based authorization | Dependency configured; secure flow pending |
+| Database | **MongoDB + Panache Kotlin (Repository pattern)** | Chosen; not yet integrated. Legacy SQL dependencies still present |
+| Authentication | Profile-scoped mock, SmallRye JWT, RBAC | Mock and error contract validated; secure flow pending |
 | Observability | SmallRye Health, JSON logging | Basic setup; hardening pending |
-| Testing | JUnit / Quarkus Test, REST Assured | Dependencies configured; tests pending |
-| Quality & Security | Detekt, PMD CPD, Gitleaks, Opengrep, Trivy | Planned |
+| Testing | JUnit 5, Quarkus Test, REST Assured | **8 tests PASS** (4 unit + 4 HTTP) |
+| Quality & Security | **Detekt required**; PMD CPD, Gitleaks, Opengrep, Trivy, coverage | Tool integration pending; Gradle `check` PASS |
 | CI/CD & Delivery | Woodpecker CI, Docker / OCI | Planned |
 
-Version numbers are defined by the Gradle project. Refer to its wrapper, plugins, and Quarkus platform properties for the authoritative versions.
+Version numbers are declared in the Gradle wrapper, plugins, and Quarkus platform properties; those files remain the source of truth for future forks.
 
 ---
 
@@ -76,7 +76,8 @@ src/main/kotlin/br/com/brunno/
 │       ├── domain/          # Domain models and rules
 │       └── infrastructure/  # Persistence, token providers, external adapters (planned)
 └── shared/
-    └── health/             # Shared operational endpoints
+    ├── health/             # Shared operational endpoints
+    └── error/              # HTTP error response and exception mapping
 ```
 
 ### 📏 Architecture Guidelines
@@ -114,10 +115,10 @@ A centralized, versioned **non-secret identity contract**, together with an idem
 
 ## 🔐 Security & Environments
 
-- **Development:** Database-dependent components are intentionally disabled in the current local bootstrap.
-- **Production:** MariaDB credentials and deployment settings must be provided securely at runtime; production startup has not yet been validated.
-- The current mock login uses example credentials and returns a fake token. **Do not expose it in production or treat its token as authentication.**
-- Real JWT signing/verification, refresh-token lifecycle, RBAC, secure error handling, and CORS policy are future milestones.
+- **Development and tests:** The current database-independent endpoints run without an external database.
+- **Production:** MongoDB connection details and deployment settings will be injected securely at runtime **after the migration**; a production database has not been validated yet.
+- The mock login is included only in `dev` and `test` builds and returns a non-functional example token. Its absence was verified in a production-profile smoke test before the toolchain upgrade; **never treat it as real authentication**.
+- Signed JWT, refresh-token lifecycle, RBAC, and CORS policy are future milestones; the current invalid-credentials path already returns a standardized HTTP 401.
 - Secrets must come from environment injection or a secret manager, never source control or logs.
 
 ---
@@ -126,8 +127,8 @@ A centralized, versioned **non-secret identity contract**, together with an idem
 
 ### Prerequisites
 
-- JDK compatible with the Gradle wrapper and configured Quarkus version.
-- No local Docker installation is needed for the current **database-independent dev mode**.
+- **JDK 21** for compilation and execution (the Gradle wrapper selects a compatible toolchain).
+- No local Docker or MongoDB installation is needed for the current **database-independent development and test flows**.
 
 ### 💻 Development (Live Reload)
 
@@ -149,7 +150,7 @@ Endpoints to verify:
 GET  http://localhost:8080/status
 GET  http://localhost:8080/q/health
      http://localhost:8080/q/swagger-ui
-POST http://localhost:8080/auth/login   (mock only)
+POST http://localhost:8080/auth/login   (dev/test mock only)
 ```
 
 `quarkusDev` runs continuously, so the Gradle task remains active until stopped.
@@ -160,25 +161,31 @@ POST http://localhost:8080/auth/login   (mock only)
 
 ### Unit Tests
 
-Planned: JUnit tests for domain rules, use cases, input edge cases, and error mapping, without starting MariaDB or relying on Docker.
+JUnit 5 tests cover the `LoginUseCase` directly, without HTTP, CDI, Docker, or a database:
+
+- Valid credentials and authenticated user data.
+- E-mail normalization.
+- Invalid password and unknown e-mail rejection.
 
 ```bash
 ./gradlew test
 ```
 
 ```powershell
-.\gradlew.bat test
+.\gradlew.bat clean check --console=plain
 ```
 
-**Current inventory:** No files were found under `src/test`. The commands above are the standard Gradle test tasks, **not evidence of passing tests**. The test profile must be reviewed before relying on the command locally.
+**Validated baseline: 4 unit tests passing.**
 
 ### API & Integration Tests
 
-Planned: `@QuarkusTest` and REST Assured for HTTP status codes, request validation, error contracts, and authorization. MariaDB/Flyway integration tests will use an isolated database environment; they must not silently require Docker on every developer machine.
+`@QuarkusTest` and REST Assured exercise the HTTP contract, including successful login, invalid credentials (401), invalid e-mail (400), and blank password (400).
+
+**Validated baseline: 4 HTTP tests passing; 8/8 overall.** These tests use the `test` profile with database-dependent services disabled. MongoDB integration tests are a separate future phase and will require an isolated MongoDB instance.
 
 ### Coverage & Quality Gates
 
-The intended toolchain is **Detekt** (Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), plus automated tests and a coverage reporter (JaCoCo or Kover, to be selected).
+The intended toolchain is **Detekt** (required for Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), and a coverage reporter (JaCoCo or Kover, to be selected). The existing Gradle `check` and eight tests are passing; scanner and coverage integration is pending.
 
 Quality policy:
 
@@ -187,7 +194,7 @@ measure → review findings → fix real issues → establish baseline
         → validate positive and negative paths → block regressions
 ```
 
-Coverage and duplication thresholds will be set from real measurements, not arbitrary percentages. None of these gates is marked as implemented yet.
+Coverage and duplication thresholds will be set from real measurements, not arbitrary percentages. Detekt and external security/coverage gates are **not** marked as implemented yet.
 
 ---
 
@@ -234,4 +241,4 @@ Compilation and scanning must run on **build runners**, not production runtime n
 
 ---
 
-This repository is intended to grow as a reusable, production-oriented backend foundation. Roadmap items only become completed once implementation and validation are confirmed in the repository.
+This repository is a reusable backend foundation. Features are marked complete only when their implementation and validation are confirmed; the approved MongoDB migration and quality gates remain upcoming work.
