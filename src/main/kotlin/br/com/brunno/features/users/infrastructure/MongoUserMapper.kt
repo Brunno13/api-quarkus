@@ -3,6 +3,7 @@ package br.com.brunno.features.users.infrastructure
 import br.com.brunno.features.users.domain.User
 import br.com.brunno.features.users.domain.UserRole
 import java.util.UUID
+import br.com.brunno.features.users.domain.UserEmail
 
 object MongoUserMapper {
 
@@ -10,7 +11,7 @@ object MongoUserMapper {
         MongoUserDocument().apply {
             id = user.id.toString()
             name = user.name
-            email = user.email
+            email = UserEmail.normalize(user.email)
             roles = user.roles.map { it.name }.sorted()
         }
 

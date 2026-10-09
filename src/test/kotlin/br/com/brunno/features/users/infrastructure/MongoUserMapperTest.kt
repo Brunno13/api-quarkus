@@ -69,4 +69,17 @@ class MongoUserMapperTest {
             MongoUserMapper.toDomain(document)
         }
     }
+
+    @Test
+    fun `stores normalized email in MongoDB document`() {
+        val user = User(
+            id = UUID.randomUUID(),
+            name = "Example Admin",
+            email = "  ADMIN@Example.COM  "
+        )
+
+        val document = MongoUserMapper.toDocument(user)
+
+        assertEquals("admin@example.com", document.email)
+    }
 }

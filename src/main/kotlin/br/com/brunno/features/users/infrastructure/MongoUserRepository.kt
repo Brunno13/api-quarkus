@@ -6,6 +6,7 @@ import io.quarkus.arc.properties.IfBuildProperty
 import io.quarkus.mongodb.panache.kotlin.PanacheMongoRepositoryBase
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.UUID
+import br.com.brunno.features.users.domain.UserEmail
 
 @ApplicationScoped
 @IfBuildProperty(
@@ -21,7 +22,7 @@ class MongoUserRepository :
             ?.let(MongoUserMapper::toDomain)
 
     override fun findByEmail(email: String): User? =
-        find("email", email)
+        find("email", UserEmail.normalize(email))
             .firstResult()
             ?.let(MongoUserMapper::toDomain)
 
