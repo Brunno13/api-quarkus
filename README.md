@@ -1,904 +1,237 @@
-# API Quarkus Kotlin
+# ⚡ API Quarkus (Kotlin)
 
-API backend leve, modular e preparada para atender aplicações **mobile** e **web**, construída com **Quarkus**, **Kotlin**, **MariaDB** e autenticação baseada em **JWT RBAC**.
+Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-O projeto será desenvolvido como um **monólito modular**, organizado por features e inspirado em **Feature-Sliced Design (FSD)**, mantendo uma abordagem pragmática de **Clean Architecture** dentro de cada domínio.
-
-> Status: em planejamento / bootstrap inicial.
+> **Current stage:** Early foundation. The authentication endpoint currently uses a **development mock**, not production authentication. Database integration, real JWT/RBAC, automated tests, security gates, and CI/CD are planned, not yet validated.
 
 ---
 
-## Recursos Principais
+## 🚀 Key Features
 
-* **API leve e performática:** Backend Quarkus com foco em baixo consumo de recursos e execução eficiente em containers ARM64.
-* **Arquitetura modular:** Organização por `features/`, evitando crescimento desordenado da raiz do projeto.
-* **Clean Architecture pragmática:** Separação entre API, casos de uso, domínio e infraestrutura sem excesso de boilerplate.
-* **Autenticação e autorização:** JWT com RBAC, roles e proteção de endpoints via `@RolesAllowed`.
-* **Persistência relacional:** MariaDB com Hibernate ORM Panache Kotlin e versionamento de schema com Flyway.
-* **Validação de entrada:** DTOs Kotlin com Bean Validation, substituindo o papel de schemas como Zod no backend JVM.
-* **Documentação automática:** OpenAPI/Swagger UI para exploração e validação dos endpoints.
-* **Observabilidade:** Logs JSON no stdout, healthchecks e integração futura com OpenTelemetry/Jaeger.
-* **Deploy containerizado:** Docker com foco em imagem `linux/arm64`, preparado para Portainer e futuro Docker Swarm.
-
----
-
-## Roadmap do Projeto
-
-Este roadmap será usado como norte de implementação da API.
-
-### ✅ Definições Concluídas
-
-- [x] **Stack principal:** Kotlin + Quarkus.
-- [x] **Banco padrão:** MariaDB.
-- [x] **Modelo inicial:** Monólito modular.
-- [x] **Arquitetura:** FSD no nível de pastas + Clean Architecture pragmática dentro de cada feature.
-- [x] **Autenticação:** JWT RBAC.
-- [x] **Persistência:** Hibernate ORM Panache Kotlin + Flyway.
-- [x] **Validação:** Bean Validation em DTOs.
-- [x] **Documentação:** OpenAPI/Swagger.
-- [x] **Observabilidade inicial:** Logs JSON + healthcheck.
-- [x] **Deploy alvo:** Docker ARM64, com possibilidade futura de native image.
+- **Reusable Backend Foundation:** Start a new API from a fork without coupling business code to a specific product or hosting environment.
+- **Modular Architecture:** Feature-first organization with pragmatic Clean Architecture (`api`, `application`, `domain`, `infrastructure`).
+- **REST & API Documentation:** Quarkus REST, Jackson, Bean Validation, OpenAPI / Swagger UI.
+- **Dependency Injection:** CDI / Arc with constructor-based dependencies.
+- **Development Bootstrap:** Local Quarkus dev mode without requiring Docker or MariaDB for database-independent endpoints.
+- **Authentication Foundation:** Mock login endpoint for architectural prototyping; secure JWT / RBAC remains on the roadmap.
+- **Quality-First Direction:** Unit and integration tests, business coverage, Detekt, CPD, Gitleaks, Opengrep, and Trivy.
+- **Portable Delivery:** Woodpecker CI and OCI containers, with builds separated from runtime hosts; target architectures are validated per release.
 
 ---
 
-### 🧱 Fase 1 — Bootstrap do Projeto
+## 🗺️ Project Roadmap
 
-- [ ] Criar projeto Quarkus com Kotlin.
-- [ ] Escolher Gradle Kotlin DSL como build tool.
-- [ ] Configurar extensões iniciais:
-  - [ ] `quarkus-kotlin`
-  - [ ] `quarkus-rest-jackson`
-  - [ ] `quarkus-hibernate-validator`
-  - [ ] `quarkus-smallrye-openapi`
-  - [ ] `quarkus-hibernate-orm-panache-kotlin`
-  - [ ] `quarkus-jdbc-mariadb`
-  - [ ] `quarkus-flyway`
-  - [ ] `quarkus-smallrye-jwt`
-  - [ ] `quarkus-smallrye-health`
-  - [ ] `quarkus-logging-json`
-- [ ] Configurar `all-open` e `no-arg/jpa` para Kotlin + Hibernate.
-- [ ] Criar endpoint inicial `/hello` ou `/q/health` para validar o servidor.
-- [ ] Padronizar `application.properties` com perfis `dev`, `test` e `prod`.
+### ✅ Completed (reported in the repository inventory)
 
----
+- [x] Kotlin / Gradle Kotlin DSL / Quarkus project bootstrap.
+- [x] REST, Jackson, CDI, validation, OpenAPI / Swagger, and health extensions configured.
+- [x] `GET /status` endpoint and basic `/q/health` response.
+- [x] Feature-first folder structure for `auth` and shared code.
+- [x] `POST /auth/login` mock implementation committed (`c6813a7`); **not production-safe**.
+- [x] Local development profile with database and Dev Services disabled.
 
-### 🧭 Fase 2 — Arquitetura Base
+### 🔜 Next Steps
 
-- [ ] Criar estrutura principal:
-  - [ ] `features/`
-  - [ ] `shared/`
-  - [ ] `bootstrap/` apenas se necessário.
-- [ ] Definir convenção interna das features:
-  - [ ] `api/`
-  - [ ] `application/`
-  - [ ] `domain/`
-  - [ ] `infrastructure/`
-- [ ] Criar primeira feature `auth`.
-- [ ] Criar primeira feature `users`.
-- [ ] Criar pacote `shared/error` para tratamento global de erros.
-- [ ] Criar pacote `shared/security` para helpers e tipos comuns de segurança.
-- [ ] Criar pacote `shared/logging` para request id e logs estruturados.
-- [ ] Definir regra de importação entre camadas.
-- [ ] Definir conceito de Public API/Facade por feature.
+- [ ] Audit current sources, build, application configuration, and API behavior.
+- [ ] Centralize template identity and introduce repeatable fork configuration (`--check` / `--apply`).
+- [ ] Define architecture boundaries, consistent errors, and production-safe environment handling.
+- [ ] Add unit / API tests and a measured coverage baseline.
+- [ ] Implement and validate Detekt, CPD, Gitleaks, Opengrep, Trivy, and architecture gates.
+- [ ] Integrate MariaDB, Panache repositories, and Flyway migrations.
+- [ ] Replace mock authentication with password hashing, signed JWT, RBAC, refresh tokens, and session controls.
+- [ ] Build self-hosted Woodpecker pipelines and publish versioned OCI images.
+- [ ] Harden readiness, logging, observability, and production configuration.
+- [ ] Evaluate Native Image only after measuring JVM runtime and supporting target-architecture builds.
 
 ---
 
-### 🗄️ Fase 3 — Banco de Dados e Migrations
+## 🛠️ Tech Stack
 
-- [ ] Subir MariaDB local via Docker Compose.
-- [ ] Configurar datasource do Quarkus.
-- [ ] Configurar Flyway.
-- [ ] Criar migration `V1__create_users.sql`.
-- [ ] Criar migration `V2__create_refresh_tokens.sql`.
-- [ ] Criar entidade JPA de usuário.
-- [ ] Criar entidade JPA de refresh token.
-- [ ] Criar repositories usando Panache Kotlin.
-- [ ] Validar conexão com banco no profile `dev`.
-- [ ] Definir estratégia de IDs:
-  - [ ] `Long` auto increment, ou
-  - [ ] UUID.
-- [ ] Definir timestamps padrão:
-  - [ ] `created_at`
-  - [ ] `updated_at`
-  - [ ] `deleted_at`, se soft delete for adotado.
+| Area | Technology | Status |
+|---|---|---|
+| Language & Build | Kotlin, Gradle Kotlin DSL, JDK 17 bytecode target | Configured |
+| Framework & DI | Quarkus REST, Jackson, CDI / Arc | Configured |
+| Validation & Docs | Hibernate Validator, SmallRye OpenAPI / Swagger | Configured |
+| Database | MariaDB, Hibernate ORM Panache Kotlin, Flyway | Dependencies configured; integration pending |
+| Authentication | SmallRye JWT, role-based authorization | Dependency configured; secure flow pending |
+| Observability | SmallRye Health, JSON logging | Basic setup; hardening pending |
+| Testing | JUnit / Quarkus Test, REST Assured | Dependencies configured; tests pending |
+| Quality & Security | Detekt, PMD CPD, Gitleaks, Opengrep, Trivy | Planned |
+| CI/CD & Delivery | Woodpecker CI, Docker / OCI | Planned |
+
+Version numbers are defined by the Gradle project. Refer to its wrapper, plugins, and Quarkus platform properties for the authoritative versions.
 
 ---
 
-### 🔐 Fase 4 — Autenticação JWT RBAC
+## 🏗️ Project Architecture
 
-- [ ] Criar domínio de autenticação.
-- [ ] Criar roles iniciais:
-  - [ ] `USER`
-  - [ ] `ADMIN`
-- [ ] Criar serviço de hash de senha.
-- [ ] Definir algoritmo de hash:
-  - [ ] BCrypt, ou
-  - [ ] Argon2, se adotado depois.
-- [ ] Implementar endpoint `POST /auth/register`.
-- [ ] Implementar endpoint `POST /auth/login`.
-- [ ] Implementar emissão de access token JWT.
-- [ ] Implementar refresh token persistido no banco.
-- [ ] Salvar apenas hash do refresh token.
-- [ ] Implementar endpoint `POST /auth/refresh`.
-- [ ] Implementar endpoint `POST /auth/logout`.
-- [ ] Implementar endpoint `GET /auth/me`.
-- [ ] Proteger endpoints com `@Authenticated` e `@RolesAllowed`.
-- [ ] Definir tempo de expiração:
-  - [ ] Access token curto.
-  - [ ] Refresh token longo.
-- [ ] Definir estratégia para web:
-  - [ ] Access token em memória.
-  - [ ] Refresh token em cookie HttpOnly, se aplicável.
-- [ ] Definir estratégia para mobile:
-  - [ ] Refresh token no secure storage do app.
-
----
-
-### 👤 Fase 5 — Usuários e Perfil
-
-- [ ] Criar feature `users`.
-- [ ] Criar caso de uso para buscar usuário atual.
-- [ ] Criar endpoint `GET /users/me`.
-- [ ] Criar endpoint `PATCH /users/me`.
-- [ ] Criar endpoint `PATCH /users/me/password`.
-- [ ] Criar endpoint administrativo `GET /users`.
-- [ ] Criar endpoint administrativo `GET /users/{id}`.
-- [ ] Criar endpoint administrativo para ativar/desativar usuário.
-- [ ] Definir DTOs de request e response.
-- [ ] Garantir que entidades JPA não vazem diretamente na API.
-- [ ] Adicionar validações com Bean Validation.
-
----
-
-### 🧪 Fase 6 — Testes
-
-- [ ] Configurar testes com JUnit 5.
-- [ ] Configurar `@QuarkusTest`.
-- [ ] Criar testes unitários para casos de uso.
-- [ ] Criar testes de integração para endpoints REST.
-- [ ] Criar testes de validação dos DTOs.
-- [ ] Criar testes de autorização por role.
-- [ ] Avaliar uso de Testcontainers para MariaDB.
-- [ ] Criar profile de teste com banco isolado.
-- [ ] Adicionar testes no pipeline do Woodpecker CI.
-
----
-
-### 📚 Fase 7 — OpenAPI, Health e Erros
-
-- [ ] Configurar título, versão e descrição da OpenAPI.
-- [ ] Documentar endpoints principais.
-- [ ] Padronizar responses de erro.
-- [ ] Criar `GlobalExceptionMapper`.
-- [ ] Criar modelo `ApiError`.
-- [ ] Criar códigos internos de erro.
-- [ ] Configurar Swagger UI em dev.
-- [ ] Decidir se Swagger UI ficará desabilitado em produção.
-- [ ] Configurar SmallRye Health.
-- [ ] Validar endpoints:
-  - [ ] `/q/health`
-  - [ ] `/q/health/live`
-  - [ ] `/q/health/ready`
-
----
-
-### 📈 Fase 8 — Logs e Observabilidade
-
-- [ ] Configurar logs JSON no console.
-- [ ] Adicionar `requestId` por requisição.
-- [ ] Incluir `requestId` nos logs.
-- [ ] Incluir `traceId` e `spanId` quando OpenTelemetry estiver ativo.
-- [ ] Padronizar campos de log para compatibilidade com Dozzle.
-- [ ] Avaliar OpenTelemetry.
-- [ ] Integrar com Jaeger via OTLP.
-- [ ] Definir sampling inicial de traces.
-- [ ] Criar endpoint ou metadata de versão da aplicação.
-- [ ] Definir convenção de logs para eventos de segurança:
-  - [ ] Login bem-sucedido.
-  - [ ] Login inválido.
-  - [ ] Refresh token revogado.
-  - [ ] Acesso negado por role.
-
----
-
-### 🐳 Fase 9 — Docker e Execução Local
-
-- [ ] Criar `Dockerfile.jvm`.
-- [ ] Criar `Dockerfile.native`, se native image for adotado.
-- [ ] Criar `docker-compose.yml` para desenvolvimento local.
-- [ ] Adicionar serviço MariaDB ao compose.
-- [ ] Adicionar healthcheck do container da API.
-- [ ] Configurar variáveis de ambiente.
-- [ ] Criar `.env.example`.
-- [ ] Validar build `linux/arm64`.
-- [ ] Validar execução em ambiente ARM64.
-- [ ] Configurar limites de memória recomendados.
-- [ ] Documentar comandos de build e execução.
-
----
-
-### 🚀 Fase 10 — CI/CD e Deploy
-
-- [ ] Criar pipeline Woodpecker CI.
-- [ ] Executar lint/check/test no pipeline.
-- [ ] Gerar imagem Docker.
-- [ ] Publicar imagem em registry.
-- [ ] Definir estratégia de versionamento por tag.
-- [ ] Criar pipeline de release.
-- [ ] Criar stack inicial para Portainer.
-- [ ] Preparar deploy futuro em Docker Swarm.
-- [ ] Definir secrets:
-  - [ ] `DB_PASSWORD`
-  - [ ] `JWT_PRIVATE_KEY`
-  - [ ] `JWT_PUBLIC_KEY`
-  - [ ] `MARIADB_ROOT_PASSWORD`
-- [ ] Criar documentação de rollback.
-
----
-
-### 🛡️ Fase 11 — Hardening e Segurança
-
-- [ ] Configurar CORS por ambiente.
-- [ ] Definir política de cookies para web, se usada.
-- [ ] Configurar HTTPS no reverse proxy.
-- [ ] Validar headers de segurança.
-- [ ] Bloquear Swagger UI em produção ou proteger acesso.
-- [ ] Garantir que secrets não sejam logados.
-- [ ] Implementar rate limit, se necessário.
-- [ ] Implementar lockout temporário para login inválido, se necessário.
-- [ ] Revisar expiração e rotação de refresh tokens.
-- [ ] Criar rotina de limpeza de refresh tokens expirados.
-- [ ] Criar usuário admin inicial apenas via variável de ambiente ou comando controlado.
-- [ ] Evitar senha padrão hardcoded.
-
----
-
-### 📦 Fase 12 — Native Image
-
-- [ ] Validar build JVM primeiro.
-- [ ] Criar build native local.
-- [ ] Testar serialização/deserialização de DTOs Kotlin em native image.
-- [ ] Testar autenticação JWT em native image.
-- [ ] Testar Hibernate ORM/Panache em native image.
-- [ ] Testar Flyway em native image.
-- [ ] Medir consumo de memória.
-- [ ] Comparar imagem JVM vs native.
-- [ ] Decidir se produção usará:
-  - [ ] JVM container otimizado.
-  - [ ] Native image.
-- [ ] Criar pipeline específica para native image ARM64, se adotado.
-
----
-
-## Tecnologias Utilizadas
-
-* **Framework:** Quarkus
-* **Linguagem:** Kotlin
-* **Build Tool:** Gradle Kotlin DSL
-* **Servidor HTTP/API:** Quarkus REST
-* **Validação:** Hibernate Validator / Jakarta Bean Validation
-* **Documentação:** SmallRye OpenAPI + Swagger UI
-* **Banco de Dados:** MariaDB
-* **ORM:** Hibernate ORM Panache Kotlin
-* **Migrations:** Flyway
-* **Autenticação:** SmallRye JWT
-* **Autorização:** JWT RBAC + `@RolesAllowed`
-* **Healthcheck:** SmallRye Health
-* **Logs Estruturados:** Quarkus Logging JSON
-* **Tracing:** OpenTelemetry + Jaeger
-* **Containerização:** Docker
-* **CI/CD:** Woodpecker CI
-* **Deploy:** Portainer e futuro Docker Swarm
-
----
-
-## Arquitetura do Projeto
-
-O projeto seguirá uma organização inspirada em **Feature-Sliced Design**, mas adaptada para backend.
-
-A raiz do código será pequena e previsível:
+The backend is a **modular monolith**: each feature owns its HTTP contracts, use cases, domain, and infrastructure adapters.
 
 ```text
-src/main/kotlin/br/com/seuprojeto/
-├── features/      # Domínios de negócio da aplicação
-├── shared/        # Infraestrutura comum e código agnóstico de domínio
-└── bootstrap/     # Inicialização da aplicação, se necessário
+src/main/kotlin/br/com/brunno/
+├── features/
+│   └── auth/
+│       ├── api/             # REST resource and request/response DTOs
+│       ├── application/     # Use cases and application contracts
+│       ├── domain/          # Domain models and rules
+│       └── infrastructure/  # Persistence, token providers, external adapters (planned)
+└── shared/
+    └── health/             # Shared operational endpoints
 ```
 
-A pasta `bootstrap/` é opcional. Ela só deve existir se houver código real de inicialização, como seed controlado, logs de startup, observers do Quarkus ou tarefas de boot.
+### 📏 Architecture Guidelines
+
+- **API** handles HTTP, DTOs, validation, and mapping; business rules belong elsewhere.
+- **Application** orchestrates use cases using explicit contracts.
+- **Domain** must not depend on Quarkus, HTTP, persistence, or infrastructure details.
+- **Infrastructure** implements technical contracts, including repositories and token services.
+- **Shared** contains genuinely cross-cutting code, not unrelated feature business logic.
+- Cross-feature interactions should use explicit public contracts rather than importing another feature's internals.
+
+Architecture enforcement is a **planned quality gate**, not an existing check.
 
 ---
 
-## Estrutura de Pastas
+## 🧩 Template Configuration & Reuse
 
-Estrutura prevista:
+This repository is a **starter**, not a backend for a single product. When creating a fork, review:
 
 ```text
-src/
-├── main/
-│   ├── kotlin/
-│   │   └── br/
-│   │       └── com/
-│   │           └── seuprojeto/
-│   │               ├── features/
-│   │               │   ├── auth/
-│   │               │   │   ├── api/
-│   │               │   │   │   ├── AuthResource.kt
-│   │               │   │   │   └── dto/
-│   │               │   │   ├── application/
-│   │               │   │   │   ├── LoginUseCase.kt
-│   │               │   │   │   ├── RefreshTokenUseCase.kt
-│   │               │   │   │   └── LogoutUseCase.kt
-│   │               │   │   ├── domain/
-│   │               │   │   │   ├── Account.kt
-│   │               │   │   │   ├── Role.kt
-│   │               │   │   │   ├── RefreshToken.kt
-│   │               │   │   │   └── AuthRepository.kt
-│   │               │   │   ├── infrastructure/
-│   │               │   │   │   ├── AccountJpaEntity.kt
-│   │               │   │   │   ├── RefreshTokenJpaEntity.kt
-│   │               │   │   │   ├── AuthRepositoryJpa.kt
-│   │               │   │   │   ├── JwtTokenService.kt
-│   │               │   │   │   └── PasswordHasher.kt
-│   │               │   │   └── AuthFacade.kt
-│   │               │   │
-│   │               │   └── users/
-│   │               │       ├── api/
-│   │               │       │   ├── UserResource.kt
-│   │               │       │   └── dto/
-│   │               │       ├── application/
-│   │               │       ├── domain/
-│   │               │       ├── infrastructure/
-│   │               │       └── UsersFacade.kt
-│   │               │
-│   │               ├── shared/
-│   │               │   ├── error/
-│   │               │   │   ├── ApiError.kt
-│   │               │   │   └── GlobalExceptionMapper.kt
-│   │               │   ├── logging/
-│   │               │   │   └── RequestIdFilter.kt
-│   │               │   ├── security/
-│   │               │   │   ├── CurrentUser.kt
-│   │               │   │   └── Roles.kt
-│   │               │   ├── validation/
-│   │               │   ├── persistence/
-│   │               │   └── openapi/
-│   │               │
-│   │               └── bootstrap/
-│   │                   ├── StartupLogger.kt
-│   │                   └── DevDataSeeder.kt
-│   │
-│   └── resources/
-│       ├── application.properties
-│       └── db/
-│           └── migration/
-│               ├── V1__create_users.sql
-│               └── V2__create_refresh_tokens.sql
-│
-└── test/
-    └── kotlin/
+service name / application name
+Gradle group and artifact identity
+Kotlin base package
+OpenAPI title and version
+database name and connection settings
+JWT issuer, audience, and key management
+allowed origins / trusted proxies
+container image and artifact naming
+CI secrets and deployment environment
 ```
+
+A centralized, versioned **non-secret identity contract**, together with an idempotent check/apply tool, is planned. It has **not** been implemented yet. Never commit passwords, signing keys, or production tokens.
 
 ---
 
-## Diretrizes de Arquitetura
+## 🔐 Security & Environments
 
-### 1. Fluxo de Dependências
-
-As dependências devem seguir um fluxo previsível:
-
-```text
-api -> application -> domain
-infrastructure -> domain/application
-shared -> não depende de features
-```
-
-Regras principais:
-
-* `features/*/api` pode chamar `application`.
-* `features/*/application` pode depender de `domain`.
-* `features/*/domain` não deve depender de Quarkus, Hibernate, REST, banco ou JWT.
-* `features/*/infrastructure` implementa contratos do domínio ou da aplicação.
-* `shared` não deve conter regra de negócio específica.
-* Uma feature não deve acessar detalhes internos de outra feature.
+- **Development:** Database-dependent components are intentionally disabled in the current local bootstrap.
+- **Production:** MariaDB credentials and deployment settings must be provided securely at runtime; production startup has not yet been validated.
+- The current mock login uses example credentials and returns a fake token. **Do not expose it in production or treat its token as authentication.**
+- Real JWT signing/verification, refresh-token lifecycle, RBAC, secure error handling, and CORS policy are future milestones.
+- Secrets must come from environment injection or a secret manager, never source control or logs.
 
 ---
 
-### 2. Public API das Features
+## 🚀 Running Locally
 
-Cada feature pode expor uma fachada pública quando precisar ser consumida por outra feature.
+### Prerequisites
 
-Exemplo:
+- JDK compatible with the Gradle wrapper and configured Quarkus version.
+- No local Docker installation is needed for the current **database-independent dev mode**.
 
-```text
-features/users/UsersFacade.kt
-features/auth/AuthFacade.kt
-```
+### 💻 Development (Live Reload)
 
-Permitido:
-
-```kotlin
-import br.com.seuprojeto.features.users.UsersFacade
-```
-
-Evitar:
-
-```kotlin
-import br.com.seuprojeto.features.users.infrastructure.UserJpaEntity
-import br.com.seuprojeto.features.users.application.CreateUserUseCase
-```
-
-A ideia é manter encapsulamento semelhante ao uso de Barrel Files no frontend.
-
----
-
-### 3. DTOs não são Entidades
-
-Entidades de persistência não devem ser retornadas diretamente pela API.
-
-A API deve usar DTOs:
-
-```text
-CreateUserRequest
-UpdateUserRequest
-UserResponse
-LoginRequest
-LoginResponse
-```
-
-Entidades JPA ficam em `infrastructure`.
-
-Modelos de domínio ficam em `domain`.
-
----
-
-### 4. Kotlin + JPA
-
-Diretrizes específicas:
-
-* Usar `data class` para DTOs, commands, results e value objects.
-* Evitar `data class` para entidades JPA.
-* Usar classes abertas via plugin `all-open`.
-* Usar plugin `jpa/no-arg`.
-* Usar `@field:` em anotações de validação.
-* Testar native image cedo.
-
-Exemplo:
-
-```kotlin
-data class LoginRequest(
-    @field:NotBlank
-    @field:Email
-    val email: String,
-
-    @field:NotBlank
-    val password: String
-)
-```
-
----
-
-## Ambientes
-
-A API deverá suportar pelo menos três ambientes:
-
-### Desenvolvimento
-
-```text
-Profile: dev
-Banco: MariaDB via Docker Compose
-Swagger UI: habilitado
-Logs: JSON ou pretty, conforme necessidade local
-```
-
-### Testes
-
-```text
-Profile: test
-Banco: Testcontainers ou banco isolado
-Migrations: Flyway
-JWT: chaves de teste
-```
-
-### Produção
-
-```text
-Profile: prod
-Banco: MariaDB persistente
-Swagger UI: desabilitado ou protegido
-Logs: JSON no stdout
-Secrets: variáveis de ambiente ou Docker secrets
-Deploy: Docker/Portainer/Swarm
-```
-
----
-
-## Configuração Local
-
-### Pré-requisitos
-
-* JDK 21
-* Gradle ou Wrapper do Gradle
-* Docker
-* Docker Compose
-* MariaDB via container
-* Quarkus CLI, opcional
-
----
-
-### Variáveis de Ambiente
-
-Criar um arquivo `.env` local baseado em `.env.example`.
-
-```env
-APP_ENV=dev
-
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=appdb
-DB_USER=app
-DB_PASSWORD=app_password
-
-JWT_ISSUER=api-quarkus
-JWT_PRIVATE_KEY_PATH=privateKey.pem
-JWT_PUBLIC_KEY_PATH=publicKey.pem
-```
-
----
-
-## Como Rodar Localmente
-
-### 1. Subir banco local
-
-```bash
-docker compose up -d mariadb
-```
-
-### 2. Rodar migrations
-
-As migrations serão executadas automaticamente pelo Flyway no startup da aplicação.
+Linux / macOS:
 
 ```bash
 ./gradlew quarkusDev
 ```
 
-### 3. Acessar endpoints úteis
+Windows / PowerShell:
+
+```powershell
+.\gradlew.bat quarkusDev
+```
+
+Endpoints to verify:
 
 ```text
-API:        http://localhost:8080
-Health:     http://localhost:8080/q/health
-OpenAPI:    http://localhost:8080/q/openapi
-Swagger UI: http://localhost:8080/q/swagger-ui
+GET  http://localhost:8080/status
+GET  http://localhost:8080/q/health
+     http://localhost:8080/q/swagger-ui
+POST http://localhost:8080/auth/login   (mock only)
 ```
+
+`quarkusDev` runs continuously, so the Gradle task remains active until stopped.
 
 ---
 
-## Docker Compose de Desenvolvimento
+## 🧪 Testing & Quality
 
-Placeholder inicial:
+### Unit Tests
 
-```yaml
-services:
-  api:
-    build:
-      context: .
-      dockerfile: src/main/docker/Dockerfile.jvm
-    environment:
-      QUARKUS_PROFILE: dev
-      DB_HOST: mariadb
-      DB_PORT: 3306
-      DB_NAME: appdb
-      DB_USER: app
-      DB_PASSWORD: app_password
-    ports:
-      - "8080:8080"
-    depends_on:
-      - mariadb
-
-  mariadb:
-    image: mariadb:lts
-    environment:
-      MARIADB_DATABASE: appdb
-      MARIADB_USER: app
-      MARIADB_PASSWORD: app_password
-      MARIADB_ROOT_PASSWORD: root_password
-    ports:
-      - "3306:3306"
-    volumes:
-      - mariadb_data:/var/lib/mysql
-
-volumes:
-  mariadb_data:
-```
-
----
-
-## Build
-
-### Build JVM
+Planned: JUnit tests for domain rules, use cases, input edge cases, and error mapping, without starting MariaDB or relying on Docker.
 
 ```bash
-./gradlew build
+./gradlew test
 ```
 
-### Rodar em modo dev
-
-```bash
-./gradlew quarkusDev
+```powershell
+.\gradlew.bat test
 ```
 
-### Build Docker JVM
+**Current inventory:** No files were found under `src/test`. The commands above are the standard Gradle test tasks, **not evidence of passing tests**. The test profile must be reviewed before relying on the command locally.
 
-```bash
-docker build -f src/main/docker/Dockerfile.jvm -t api-quarkus:jvm .
+### API & Integration Tests
+
+Planned: `@QuarkusTest` and REST Assured for HTTP status codes, request validation, error contracts, and authorization. MariaDB/Flyway integration tests will use an isolated database environment; they must not silently require Docker on every developer machine.
+
+### Coverage & Quality Gates
+
+The intended toolchain is **Detekt** (Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), plus automated tests and a coverage reporter (JaCoCo or Kover, to be selected).
+
+Quality policy:
+
+```text
+measure → review findings → fix real issues → establish baseline
+        → validate positive and negative paths → block regressions
 ```
 
-### Build Native
-
-```bash
-./gradlew build -Dquarkus.native.enabled=true
-```
-
-### Build Docker Native
-
-```bash
-docker build -f src/main/docker/Dockerfile.native -t api-quarkus:native .
-```
-
-> A estratégia de produção JVM vs Native será validada durante o roadmap. A prioridade inicial é ter a API funcional e bem testada.
+Coverage and duplication thresholds will be set from real measurements, not arbitrary percentages. None of these gates is marked as implemented yet.
 
 ---
 
-## Autenticação e Autorização
+## ⚙️ CI/CD & Containerization
 
-A API usará autenticação baseada em JWT.
-
-Fluxo previsto:
+Woodpecker CI is the intended self-hosted pipeline orchestrator:
 
 ```text
-POST /auth/register
-POST /auth/login
-POST /auth/refresh
-POST /auth/logout
-GET  /auth/me
+Push / Pull Request / Tag
+          │
+          ▼
+Dedicated build runner
+  ├── Compile / test / coverage
+  ├── Quality and security scans
+  ├── Package JVM application
+  └── Build and publish target-platform OCI image
+          │
+          ▼
+Target runtime host / container platform
 ```
 
-Modelo de sessão:
-
-```text
-Access Token:
-  JWT curto
-  contém subject, roles e expiração
-
-Refresh Token:
-  token longo
-  persistido no banco apenas como hash
-  pode ser revogado no logout
-```
-
-Autorização:
-
-```kotlin
-@RolesAllowed("ADMIN")
-```
-
-Roles iniciais:
-
-```text
-USER
-ADMIN
-```
+Compilation and scanning must run on **build runners**, not production runtime nodes. A JVM artifact may be packaged with the appropriate target-platform JRE. Native executables, unlike JVM bytecode, require an architecture-compatible native build process. The pipeline, image publication, and deploy are still pending.
 
 ---
 
-## Banco de Dados
+## 📐 Project Guidelines
 
-Banco padrão:
-
-```text
-MariaDB
-```
-
-Migrations:
-
-```text
-Flyway
-```
-
-Tabelas iniciais previstas:
-
-```text
-users
-refresh_tokens
-```
-
-Estratégia inicial:
-
-* Schema versionado por migrations SQL.
-* Nenhuma alteração automática de schema em produção.
-* Repositories usando Panache Kotlin.
-* Entidades JPA isoladas em `infrastructure`.
-* DTOs separados das entidades.
+- Keep feature boundaries explicit and verify them through tests or static analysis.
+- Prefer constructor injection and domain-independent interfaces.
+- Keep business logic testable without an HTTP server or database.
+- Never ship development credentials, fake authentication, or debug exceptions to production.
+- Avoid artificial test coverage, unnecessary abstractions, and broad lint suppressions.
+- Keep product identity and environment configuration centralized for forks.
+- Separate build-time operations from lightweight runtime deployment.
 
 ---
 
-## Observabilidade
+## 📚 Related Projects
 
-### Logs
-
-A API deverá emitir logs estruturados em JSON no stdout.
-
-Campos desejados:
-
-```json
-{
-  "timestamp": "2026-01-01T00:00:00Z",
-  "level": "INFO",
-  "service": "api-quarkus",
-  "env": "dev",
-  "requestId": "uuid",
-  "traceId": "trace-id",
-  "spanId": "span-id",
-  "message": "request completed"
-}
-```
-
-### Healthcheck
-
-Endpoints Quarkus:
-
-```text
-/q/health
-/q/health/live
-/q/health/ready
-```
-
-### Tracing
-
-Integração futura:
-
-```text
-OpenTelemetry -> Jaeger
-```
+- [`Brunno13/api-bun`](https://github.com/Brunno13/api-bun) — Bun / Elysia backend and architectural reference.
+- [`Brunno13/app-kmp`](https://github.com/Brunno13/app-kmp) — Kotlin Multiplatform reusable base app.
+- [`Brunno13/app-react-native`](https://github.com/Brunno13/app-react-native) — React Native / Expo reusable base app.
+- [`Brunno13/app-flutter`](https://github.com/Brunno13/app-flutter) — Flutter reusable base app.
 
 ---
 
-## CI/CD
-
-Pipeline prevista com Woodpecker CI.
-
-Fluxo esperado:
-
-1. Push ou Pull Request.
-2. Executar checks.
-3. Rodar testes.
-4. Gerar build.
-5. Gerar imagem Docker.
-6. Publicar imagem no registry.
-7. Deploy via Portainer ou Docker Swarm.
-8. Criar release ao gerar tag.
-
-Placeholder de etapas:
-
-```yaml
-steps:
-  test:
-    image: gradle:jdk21
-    commands:
-      - ./gradlew test
-
-  build:
-    image: gradle:jdk21
-    commands:
-      - ./gradlew build
-
-  docker:
-    image: plugins/docker
-    settings:
-      repo: registry.local/api-quarkus
-      tags:
-        - latest
-        - ${CI_COMMIT_TAG}
-```
-
----
-
-## Deploy
-
-### Estratégia Inicial
-
-```text
-Docker container
-Portainer
-MariaDB persistente
-Reverse proxy externo
-```
-
-### Estratégia Futura
-
-```text
-Docker Swarm
-Serviços stateless replicáveis
-Banco fixado no nó com storage persistente
-Secrets gerenciados pelo Swarm
-Healthchecks configurados
-Logs via Docker/Dozzle
-Tracing via Jaeger
-```
-
-### Portas previstas
-
-```text
-8080  -> API
-3306  -> MariaDB, apenas rede interna
-4317  -> OTLP gRPC, se tracing for ativado
-4318  -> OTLP HTTP, se tracing for ativado
-```
-
----
-
-## Segurança
-
-Diretrizes iniciais:
-
-* Não commitar secrets.
-* Não usar senha padrão hardcoded.
-* Criar admin inicial apenas via variável de ambiente ou processo controlado.
-* Armazenar hash de senha, nunca senha pura.
-* Armazenar hash do refresh token, nunca o refresh token puro.
-* Usar HTTPS em produção.
-* Configurar CORS por ambiente.
-* Desabilitar ou proteger Swagger UI em produção.
-* Não expor stacktrace ao cliente.
-* Não logar tokens, senhas ou dados sensíveis.
-
----
-
-## Convenções de Código
-
-Placeholder inicial:
-
-```text
-Classes de API:
-  AuthResource
-  UserResource
-
-DTOs:
-  LoginRequest
-  LoginResponse
-  UserResponse
-
-UseCases:
-  LoginUseCase
-  RegisterUserUseCase
-  RefreshTokenUseCase
-
-Repositories:
-  UserRepository
-  UserRepositoryJpa
-
-Entities:
-  UserJpaEntity
-  RefreshTokenJpaEntity
-
-Facades:
-  AuthFacade
-  UsersFacade
-```
-
----
-
-## Próximo Passo Imediato
-
-A próxima etapa será criar o projeto Quarkus do zero com Kotlin e validar o primeiro ciclo completo:
-
-```text
-Quarkus sobe
-MariaDB conecta
-Flyway executa
-Healthcheck responde
-Swagger abre
-Primeiro endpoint funciona
-```
-
-Depois disso, a implementação seguirá o roadmap por fases.
+This repository is intended to grow as a reusable, production-oriented backend foundation. Roadmap items only become completed once implementation and validation are confirmed in the repository.
