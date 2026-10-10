@@ -1,77 +1,92 @@
 # ⚡ API Quarkus (Kotlin)
 
-Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. The project is designed for independent forks, with a feature-first modular monolith, pragmatic Clean Architecture, explicit environment configuration, and incremental quality/security checks.
+Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-> **Project status (October 2026):** Gradle **9.8.1**, Quarkus **3.40.1 LTS**, Kotlin **2.4.10**, and Java **21** bytecode are validated. MongoDB Panache Kotlin, a `User` domain/repository adapter, and the first versioned unique-email index migration are implemented. A **Linux ARM64 Native Image** was successfully built using **Mandrel 25** and run in a minimal **JVM-free UBI Micro** container, with HTTP and MongoDB health checks passing. **MongoDB repository integration passed against MongoDB 8.0 (1 JUnit test, 0 failures)**, and the native image has not yet been tested on a physical ARM64 production host. Real authentication, automated quality/security gates, and CI/CD publication remain pending.
-
----
-
-## 🚀 Features and Architecture
-
-- **Reusable template:** Fork into a new backend without coupling code to a particular product or hosting provider.
-- **Feature-first modular monolith:** `api`, `application`, `domain`, and `infrastructure` boundaries.
-- **REST & API documentation:** Quarkus REST, Jackson, Jakarta Bean Validation, SmallRye OpenAPI / Swagger UI.
-- **Dependency injection:** Quarkus CDI / Arc and constructor injection.
-- **Persistence foundation:** MongoDB Panache Kotlin with domain-level repository contracts, UUID-based user IDs, BSON mapping, normalized e-mail addresses, and explicitly versioned indexes.
-- **Developer-friendly tests:** Unit and database-independent HTTP tests do not require a local MongoDB or Docker daemon. Database integration uses a separate test task.
-- **Native ARM64 delivery:** Native Image compiled with Mandrel/GraalVM **25** for `linux/arm64`, packaged into an OCI image with **no JVM/JDK at runtime**.
-- **Security foundation:** Development/test-only mock login. **Real password authentication, JWT issuance, RBAC, refresh tokens, and sessions are not implemented yet.**
-
-## 🗺️ Implementation status
-
-| Area | Status |
-|---|---|
-| Kotlin, Gradle, Java 21, Quarkus | Validated |
-| REST, validation, JSON, OpenAPI, CDI, health | Configured and exercised |
-| User domain, `UserRepository`, MongoDB document/mapper/adapter | Implemented; isolated mapping tests validated |
-| Database migration `V001__users_email_unique.js` | Tested against MongoDB 8.0, including idempotency and negative paths |
-| Ordinary `clean check` without MongoDB | PASS on development machine and Linux builder |
-| MongoDB repository integration (`mongoIntegrationTest`) | **PASS** against MongoDB 8.0 (1 JUnit test, 0 failures) |
-| Linux ARM64 Native Image with Mandrel 25 | Built successfully and identified as AArch64 ELF |
-| JVM-free UBI Micro ARM64 runtime | Startup, `/status`, `/q/health` and MongoDB connectivity PASS in emulation |
-| `Dockerfile.native-arm64` container build | Built and started successfully; executable SHA-256 preserved |
-| Physical ARM64 device and published deployment | Not yet validated |
-| Real login/JWT/RBAC, Detekt/scanners, Woodpecker pipeline | Planned |
-
-### Next milestones
-
-1. Extend repository integration coverage against isolated MongoDB while keeping the default test suite independent of MongoDB.
-2. Complete negative-path and repository/domain tests, including uniqueness and normalization behavior.
-3. Integrate Detekt, coverage, duplication analysis, secrets/SAST/dependency/image scanning and meaningful quality gates.
-4. Add repeatable project identity/rebranding for forks and implement production authentication.
-5. Automate native build, image publication and release verification in CI; run a smoke test on the actual ARM64 target.
+> **Current stage (October 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21** (class-file version 65). MongoDB Panache Kotlin, the `User` repository adapter, and the first versioned migration are implemented. Database-independent `clean check` and the dedicated **MongoDB 8.0 repository integration test** pass. A **Linux ARM64 Native Image** was compiled with **Mandrel 25** and validated in a JVM-free UBI Micro container. Real authentication, CI/CD publication, quality/security gates, and deployment to physical ARM64 hardware remain pending.
 
 ---
 
-## 🛠️ Technology stack
+## 🚀 Key Features
 
-| Area | Technology |
-|---|---|
-| Language | Kotlin 2.4.10, Java 21 bytecode |
-| Build | Gradle Wrapper 9.8.1, Gradle Kotlin DSL |
-| Framework | Quarkus 3.40.1 LTS |
-| HTTP and API | Quarkus REST, Jackson, Validator, OpenAPI |
-| Persistence | MongoDB, Quarkus MongoDB Panache Kotlin |
-| Tests | JUnit 5, `@QuarkusTest`, REST Assured, explicit MongoDB integration suite |
-| Native compiler | Quarkus Native Image using Mandrel / GraalVM 25 |
-| Container runtime | OCI `linux/arm64` image based on Quarkus UBI9 Micro |
-| Future quality/CI | Detekt, coverage, CPD, Gitleaks, Opengrep, Trivy, Woodpecker CI |
+- **Reusable Backend Foundation:** Start a new API from a fork without coupling business code to a specific product or hosting environment.
+- **Modular Architecture:** Feature-first organization with pragmatic Clean Architecture (`api`, `application`, `domain`, `infrastructure`).
+- **REST & API Documentation:** Quarkus REST, Jackson, Bean Validation, OpenAPI / Swagger UI.
+- **Dependency Injection:** CDI / Arc with constructor-based dependencies.
+- **Persistence Foundation:** MongoDB Panache Kotlin, domain repository contracts, normalized e-mail addresses, and explicit versioned index migrations.
+- **Development Bootstrap:** Local Quarkus dev mode and current unit/API tests run without requiring Docker or a database.
+- **Authentication Foundation:** Profile-limited mock login (`dev`/`test`), standardized HTTP 401 errors, and Bean Validation; secure JWT / RBAC remains on the roadmap.
+- **Quality-First Direction:** Database-independent `gradle check` and an explicitly invoked MongoDB integration test; Detekt, coverage, CPD, Gitleaks, Opengrep, and Trivy remain planned gates.
+- **Portable Delivery:** Validated Native Image for `linux/arm64` in a JVM-free OCI runtime. Automated Woodpecker delivery and native `linux/amd64` builds are planned for later phases.
 
-The Gradle wrapper, plugins, and platform properties remain the authoritative source for installed tool versions.
+---
 
-## 🏗️ Code organization
+## 🗺️ Project Roadmap
+
+### ✅ Completed (validated checkpoints)
+
+- [x] Kotlin / Gradle Kotlin DSL / Quarkus project bootstrap and feature-first structure.
+- [x] Quarkus REST, Jackson, CDI, Bean Validation, Swagger/OpenAPI, Health, and `GET /status`.
+- [x] `POST /auth/login` as a **development/test-only mock**, with a standardized HTTP 401 response for invalid credentials.
+- [x] Local `dev`/`test` profiles run database-independent code and tests without Docker.
+- [x] Four unit tests (`LoginUseCaseTest`) and four HTTP tests (`AuthResourceTest`): **8 passed, 0 failures**.
+- [x] `clean check` and JVM packaging validated after upgrades to **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**.
+- [x] Java 21 bytecode verified (`major version: 65`); toolchain upgrade pushed in commit `8d5fa0b`.
+- [x] Mock endpoint returned HTTP 404 in an earlier production-profile smoke test with the legacy database disabled; **revalidate after persistence migration**.
+- [x] Replaced legacy SQL dependencies with **MongoDB Panache Kotlin** and implemented `User`, `UserRepository`, document mapping, and a repository adapter.
+- [x] Normalized user e-mail addresses and validated `db/migrations/V001__users_email_unique.js` against MongoDB 8.0, including idempotency and negative paths.
+- [x] Validated `mongoIntegrationTest` against MongoDB 8.0: **1 JUnit test, 0 failures**, covering creation, lookup by UUID/e-mail, normalization, roles, and BSON identity.
+- [x] Generated a **Linux ARM64 Native Image** with Mandrel 25 via QEMU, then validated startup, `/status`, `/q/health`, and MongoDB connections in a **JVM-free UBI Micro** container.
+- [x] Built the ARM64 Docker image with `Dockerfile.native-arm64`; verified the packaged binary matches the compiled executable by SHA-256.
+
+### 🔜 Next Steps
+
+- [ ] Expand MongoDB repository integration tests (missing users, duplicate e-mail, normalized duplicates, and failure paths) and establish secure production database configuration.
+- [ ] Validate repository CRUD through the deployed Native Image and on the physical ARM64 target.
+- [ ] Integrate **Detekt** (required), business coverage, CPD, Gitleaks, Opengrep, Trivy, and architecture checks; establish measured baselines and verify failing paths.
+- [ ] Centralize template identity and introduce repeatable fork configuration (`--check` / `--apply`).
+- [ ] Replace mock authentication with secure password hashing, signed JWT, RBAC, refresh tokens, and session controls.
+- [ ] Implement self-hosted Woodpecker pipelines, target-platform OCI image publication, and deploy smoke tests.
+- [ ] Harden readiness, logging, observability, and production configuration.
+- [ ] Add native **Linux x86-64 (`linux/amd64`)** build and runtime validation in the final delivery phases; ARM64 remains the currently validated native target.
+
+---
+
+## 🛠️ Tech Stack
+
+| Area | Technology | Status |
+|---|---|---|
+| Language & Build | **Kotlin 2.4.10**, **Gradle 9.8.1**, **Java 21 bytecode** | Validated |
+| Framework & DI | **Quarkus 3.40.1 LTS**, REST, Jackson, CDI / Arc | Validated |
+| Validation & Docs | Hibernate Validator, SmallRye OpenAPI / Swagger | Configured |
+| Database | **MongoDB 8.0 + Panache Kotlin (Repository pattern)** | Adapter implemented; migration V001 and isolated integration validated |
+| Authentication | Profile-scoped mock, SmallRye JWT, RBAC | Mock and error contract validated; secure flow pending |
+| Observability | SmallRye Health, JSON logging | Basic setup; hardening pending |
+| Testing | JUnit 5, Quarkus Test, REST Assured | Baseline 8 unit/HTTP tests; 1 MongoDB integration test PASS; database-free `check` PASS |
+| Quality & Security | **Detekt required**; PMD CPD, Gitleaks, Opengrep, Trivy, coverage | Tool integration pending; Gradle `check` PASS |
+| Native Image | Mandrel / GraalVM 25; Quarkus UBI9 Micro | Linux ARM64 build and JVM-free container tested; native x86-64 planned |
+| CI/CD & Delivery | Woodpecker CI, Docker / OCI | ARM64 Dockerfile validated; automated CI, publication, deploy pending |
+
+Version numbers are declared in the Gradle wrapper, plugins, and Quarkus platform properties; those files remain the source of truth for future forks.
+
+---
+
+## 🏗️ Project Architecture
+
+The backend is a **modular monolith**: each feature owns its HTTP contracts, use cases, domain, and infrastructure adapters.
 
 ```text
 src/main/kotlin/br/com/brunno/
 ├── features/
 │   ├── auth/
-│   │   ├── api/
-│   │   ├── application/
+│   │   ├── api/             # REST resource and request/response DTOs
+│   │   ├── application/     # Use cases and application contracts
 │   │   └── ...
 │   └── users/
-│       ├── domain/           # User, UserRole, UserRepository and e-mail rules
-│       └── infrastructure/   # Mongo document, mapper and repository adapter
-└── shared/                   # Cross-cutting HTTP / operational concerns
+│       ├── domain/          # User, UserRole, UserRepository, normalization
+│       └── infrastructure/  # MongoDB document, mapper, repository adapter
+└── shared/
+    ├── health/             # Shared operational endpoints
+    └── error/              # HTTP error response and exception mapping
 
 db/
 ├── migrations/
@@ -83,70 +98,144 @@ src/main/docker/
 └── Dockerfile.native-arm64
 ```
 
-The domain layer is independent of HTTP, BSON/MongoDB and Quarkus. Infrastructure adapters implement domain contracts. Do not place feature-specific business logic in shared modules.
+### 📏 Architecture Guidelines
+
+- **API** handles HTTP, DTOs, validation, and mapping; business rules belong elsewhere.
+- **Application** orchestrates use cases using explicit contracts.
+- **Domain** must not depend on Quarkus, HTTP, persistence, or infrastructure details.
+- **Infrastructure** implements technical contracts, including repositories and token services.
+- **Shared** contains genuinely cross-cutting code, not unrelated feature business logic.
+- Cross-feature interactions should use explicit public contracts rather than importing another feature's internals.
+
+Architecture enforcement is a **planned quality gate**, not an existing check.
 
 ---
 
-## 💻 Local development
+## 🧩 Template Configuration & Reuse
 
-**Prerequisite:** Java 21 toolchain (the Gradle wrapper and daemon criteria select the relevant JDK). The normal unit/API test flow requires neither Docker nor a database.
+This repository is a **starter**, not a backend for a single product. When creating a fork, review:
+
+```text
+service name / application name
+Gradle group and artifact identity
+Kotlin base package
+OpenAPI title and version
+database name and connection settings
+JWT issuer, audience, and key management
+allowed origins / trusted proxies
+container image and artifact naming
+CI secrets and deployment environment
+```
+
+A centralized, versioned **non-secret identity contract**, together with an idempotent check/apply tool, is planned. It has **not** been implemented yet. Never commit passwords, signing keys, or production tokens.
+
+---
+
+## 🔐 Security & Environments
+
+- **Development and tests:** The current database-independent endpoints run without an external database.
+- **Production:** MongoDB connection settings must be injected securely at runtime (for example, `QUARKUS_MONGODB_CONNECTION_STRING` and `QUARKUS_MONGODB_DATABASE`). Only isolated MongoDB 8.0 tests have been validated; production database deployment remains pending.
+- The mock login is included only in `dev` and `test` builds and returns a non-functional example token. Its absence was verified in a production-profile smoke test before the toolchain upgrade; **never treat it as real authentication**.
+- Signed JWT, refresh-token lifecycle, RBAC, and CORS policy are future milestones; the current invalid-credentials path already returns a standardized HTTP 401.
+- Secrets must come from environment injection or a secret manager, never source control or logs.
+
+---
+
+## 🚀 Running Locally
+
+### Prerequisites
+
+- **JDK 21** for compilation and execution (the Gradle wrapper selects a compatible toolchain).
+- No local Docker or MongoDB installation is needed for the current **database-independent development and test flows**.
+
+### 💻 Development (Live Reload)
 
 Linux / macOS:
 
 ```bash
 ./gradlew quarkusDev
-./gradlew clean check --console=plain
 ```
 
 Windows / PowerShell:
 
 ```powershell
 .\gradlew.bat quarkusDev
-.\gradlew.bat clean check --console=plain
 ```
 
-Useful endpoints:
+Endpoints to verify:
 
 ```text
 GET  http://localhost:8080/status
 GET  http://localhost:8080/q/health
      http://localhost:8080/q/swagger-ui
-POST http://localhost:8080/auth/login  # dev/test mock only
+POST http://localhost:8080/auth/login   (dev/test mock only)
 ```
 
-The mock login must never be treated as production authentication. It is restricted to development/test profiles; verify that it remains absent from production builds after relevant changes.
+`quarkusDev` runs continuously, so the Gradle task remains active until stopped.
 
-### MongoDB configuration and migration
+---
 
-Production MongoDB connection values must be supplied securely at runtime, for example through `QUARKUS_MONGODB_CONNECTION_STRING` and `QUARKUS_MONGODB_DATABASE`. Do not commit real credentials, database URLs or secrets.
+## 🧪 Testing & Quality
 
-User e-mail addresses are normalized (trim + lowercase using `Locale.ROOT`) before persistence. The `users` collection has a unique index named `ux_users_email`, created by the versioned migration `db/migrations/V001__users_email_unique.js` with a `schema_migrations` record. Migration tooling is separate from application startup and should be run with appropriate database permissions before a release.
+### Unit Tests
 
-The migration and its destructive-test harness have passed against an isolated MongoDB 8.0 instance. The test harness requires explicit permission for dropping **dedicated test databases** and must never target production data. Review `db/tests/test_v001.sh` before running it.
+JUnit 5 tests cover the `LoginUseCase` directly, without HTTP, CDI, Docker, or a database:
 
-### MongoDB repository integration suite
+- Valid credentials and authenticated user data.
+- E-mail normalization.
+- Invalid password and unknown e-mail rejection.
 
 ```bash
-# Run only when an isolated MongoDB instance and migrated test database exist.
-# The test profile rejects database names without the api_quarkus_it_ prefix.
+./gradlew test
+```
+
+```powershell
+.\gradlew.bat clean check --console=plain
+```
+
+**Validated original baseline: 4 unit tests passing.** Additional user domain, mapper, and e-mail normalization tests have since been added; the full database-independent `clean check` passes.
+
+### API & Integration Tests
+
+`@QuarkusTest` and REST Assured exercise the HTTP contract, including successful login, invalid credentials (401), invalid e-mail (400), and blank password (400).
+
+**Validated original baseline: 4 HTTP tests passing; 8/8 baseline overall.** The regular `test` / `check` tasks exclude MongoDB integration tests, so the development quality gate does not require Docker or a database.
+
+### MongoDB Integration Tests
+
+The dedicated `mongoIntegrationTest` task was **validated against an isolated MongoDB 8.0 instance** (1 JUnit test, 0 failures). The test exercises user creation, lookup by UUID and normalized e-mail, role mapping, BSON `_id`, and cleanup of its generated document. Database names must start with `api_quarkus_it_`; use restricted credentials and an isolated environment.
+
+```bash
+# Run against a dedicated database with migration V001 already applied.
 export MONGODB_URI='mongodb://localhost:27017'
 export MONGODB_DATABASE='api_quarkus_it_users'
 ./gradlew mongoIntegrationTest --console=plain
 ```
 
-The integration task passed against MongoDB 8.0 (1 JUnit test, 0 failures). Integration tests are excluded from the ordinary `test` / `check` tasks to preserve local database independence.
+User e-mails are normalized (trim + `Locale.ROOT` lowercase). The migration `db/migrations/V001__users_email_unique.js` creates a unique `ux_users_email` index on the `users` collection and records its application in `schema_migrations`. The migration and its explicit destructive-test harness (`db/tests/test_v001.sh`) were validated with idempotency and negative cases. **Never run the destructive test harness on production data.**
+
+### Coverage & Quality Gates
+
+The intended toolchain is **Detekt** (required for Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), and a coverage reporter (JaCoCo or Kover, to be selected). The database-independent Gradle `check` and the explicit MongoDB integration test have passed; scanner and coverage integration is pending.
+
+Quality policy:
+
+```text
+measure → review findings → fix real issues → establish baseline
+        → validate positive and negative paths → block regressions
+```
+
+Coverage and duplication thresholds will be set from real measurements, not arbitrary percentages. Detekt and external security/coverage gates are **not** marked as implemented yet.
 
 ---
 
 ## 🧱 Native Image and Linux ARM64
 
-Native compilation is a **supported delivery target for this template**, not an optional investigation. It requires an architecture-compatible compiler: running a native-image builder on AMD64 normally produces an AMD64 binary. A Linux ARM64 build therefore uses an **ARM64 Mandrel 25 builder**, executed on ARM64 hardware or via an ARM64 emulation environment such as QEMU/binfmt.
-
-The workflow below was validated on a Linux AMD64 build host with Docker Buildx, registered QEMU AArch64 emulation, and a separate JDK 21 container. **Build and native compilation run on the builder, never on the runtime device.**
+Native Image is a **required delivery path for Linux ARM64**, not an optional experiment. Building on an AMD64 host does not automatically produce an ARM64 executable: the target architecture requires an ARM64-compatible Mandrel/GraalVM compiler. The validated workflow used an ARM64 Mandrel **25** container under QEMU/binfmt on an AMD64 build host, with Gradle/Kotlin preparation on **JDK 21 AMD64**. Runtime hosts do **not** install Java, Gradle, or Mandrel.
 
 ### A. Generate native-image inputs with Java 21
 
-Run Gradle under a JDK 21 environment:
+Run Gradle in an environment with a Java 21 toolchain:
 
 ```bash
 ./gradlew quarkusBuild \
@@ -158,11 +247,11 @@ Run Gradle under a JDK 21 environment:
   --console=plain
 ```
 
-Quarkus creates `build/native-sources/`, including `native-image.args`, the intermediate application JAR, dependencies and builder metadata. The JAR output must be disabled for this native-only packaging invocation; normal JVM builds are unaffected.
+This prepares `build/native-sources/`, including `native-image.args`, the intermediate JAR, dependencies, and compiler metadata. The native-only invocation disables additional JAR packaging; normal JVM development and tests remain available.
 
-### B. Compile an ARM64 executable using Mandrel 25
+### B. Compile for Linux ARM64 using Mandrel 25
 
-With the `linux/arm64` binfmt/QEMU handler installed and operational on the builder:
+With a working `linux/arm64` QEMU/binfmt handler (or on an ARM64 build host):
 
 ```bash
 cd build/native-sources
@@ -176,16 +265,16 @@ docker run --rm --platform linux/arm64 \
   -lc 'native-image $(cat native-image.args) -J-Xmx3g --parallelism=2'
 ```
 
-The quoted argument-file substitution shown here reflects the **validated application-specific invocation**; if source paths or arguments contain spaces, replace this with a robust argument-file parser or equivalent CI wrapper. The generated executable is architecture-specific. Verify its format using `readelf -h <runner-binary>` and check that the machine is `AArch64`.
+The invocation above was validated for this project's generated arguments. Scripts that must handle paths containing spaces should parse the generated argument file robustly. Verify the ELF architecture with `readelf -h <runner-binary>` (`Machine: AArch64`).
 
-**Measured reference build:** a Quarkus application with MongoDB and REST took approximately **25 min 32 s** for Native Image under ARM64 emulation, with **3.22 GB peak RSS** reported by the compiler. This is a reference measurement, not a speed or memory guarantee for other applications.
+**Reference measurement:** Native Image compilation took **25 min 32 s** under ARM64 emulation (approximately 25 min 50 s end-to-end), with **3.22 GB peak RSS** reported by Mandrel. This is not a guaranteed build time or memory requirement for future releases.
 
-### C. Package the compiled ARM64 binary
+### C. Package and run the JVM-free ARM64 image
 
-The prepared `src/main/docker/Dockerfile.native-arm64` uses the Quarkus UBI9 Micro runtime image and directly executes the native binary. This production-style container **does not require Java, a JRE, or Mandrel**.
+`src/main/docker/Dockerfile.native-arm64` uses `quay.io/quarkus/ubi9-quarkus-micro-image:2.0`, which does **not** require a JDK or JRE to run the native executable.
 
 ```bash
-# From the repository root, after completing the Native Image build:
+# From the repository root after the Native Image build:
 docker buildx build \
   --platform linux/arm64 --load \
   -f src/main/docker/Dockerfile.native-arm64 \
@@ -196,31 +285,56 @@ docker image inspect api-quarkus:native-arm64 \
   --format 'OS={{.Os}} ARCH={{.Architecture}}'
 ```
 
-The image was tested using an isolated MongoDB 8.0 instance: native startup, `GET /status`, `/q/health`, and both synchronous/reactive MongoDB health checks passed. The executable copied into the image was byte-identical (SHA-256 comparison) to the compiled AArch64 binary.
+The packaged ARM64 image started in a minimal UBI Micro container and returned `UP` from `GET /status` and `GET /q/health`, including synchronous and reactive MongoDB checks against an isolated MongoDB 8.0 instance. The packaged executable matched the original binary by SHA-256. These are **runtime smoke tests**, not full native CRUD tests or a production-host validation.
 
-**Not yet proven:** repository CRUD from the Native Image, a physical ARM64 host, performance under load, automated CI/release and production deployment.
+**Planned native x86-64:** A dedicated **Linux x86-64 (`linux/amd64`) Native Image build and runtime target** is part of the longer-term release roadmap. It has **not been implemented or tested**; compiler selection, build validation, and image publication will be addressed in the final project phases, without changing the currently validated ARM64 path.
 
----
-
-## ⚙️ Quality, security and delivery
-
-The ordinary Gradle `check` remains independent of MongoDB. The explicit MongoDB integration task, native build, SAST, dependencies/image vulnerability scanning and artifact verification will become separate pipeline stages. Detekt is required but not yet installed; baseline and failing-path checks will be established before enforcing it.
-
-Woodpecker CI is the planned orchestrator for build, quality and publication. Runners may compile native ARM64 directly or execute an ARM64 containerized builder through emulation. Production runtime nodes only **pull and run** published OCI images; they must not install a JDK or execute Gradle/native-image.
-
-## 🧩 Reusing this template
-
-When forking, review the Gradle group and artifact identity, application name, Kotlin base package, OpenAPI metadata, MongoDB collection/database names, JWT issuer/audience, allowed origins and proxy rules, image/release tags, CI variables, and all runtime secrets. Centralized, idempotent `--check`/`--apply` rebranding tooling is planned, not implemented.
-
-Do not commit authentication keys or production connection strings. Do not expose development mock credentials or issue mock tokens in production.
-
-## 📚 Related projects
-
-- [`Brunno13/api-bun`](https://github.com/Brunno13/api-bun) — Bun / Elysia backend reference.
-- [`Brunno13/app-kmp`](https://github.com/Brunno13/app-kmp) — Kotlin Multiplatform application template.
-- [`Brunno13/app-react-native`](https://github.com/Brunno13/app-react-native) — React Native application template.
-- [`Brunno13/app-flutter`](https://github.com/Brunno13/app-flutter) — Flutter application template.
+**Pending for ARM64:** native CRUD behavior, execution on physical ARM64 hardware, load tests, automated release publication, and production deployment.
 
 ---
 
-**Release policy:** Mark a milestone completed only when implementation and its associated tests or runtime evidence are available. A successful ARM64 native smoke test is not a substitute for MongoDB CRUD integration tests or validation on the intended production host.
+## ⚙️ CI/CD & Containerization
+
+Woodpecker CI is the intended self-hosted pipeline orchestrator:
+
+```text
+Push / Pull Request / Tag
+          │
+          ▼
+Dedicated build runner
+  ├── Compile / test / coverage
+  ├── Quality and security scans
+  ├── Prepare Java 21 artifacts for Native Image
+  ├── Compile linux/arm64 with Mandrel 25
+  └── Build and publish target-platform OCI image
+          │
+          ▼
+Target runtime host / container platform
+```
+
+Compilation and scanning must run on **build runners**, not production runtime nodes. The primary ARM64 deployment model uses a native executable with **no JVM/JRE on the runtime host**. The ARM64 Dockerfile is validated; automated pipelines, image publication, native x86-64 builds, and physical-host deployment remain pending.
+
+---
+
+## 📐 Project Guidelines
+
+- Keep feature boundaries explicit and verify them through tests or static analysis.
+- Prefer constructor injection and domain-independent interfaces.
+- Keep business logic testable without an HTTP server or database.
+- Never ship development credentials, fake authentication, or debug exceptions to production.
+- Avoid artificial test coverage, unnecessary abstractions, and broad lint suppressions.
+- Keep product identity and environment configuration centralized for forks.
+- Separate build-time operations from lightweight runtime deployment.
+
+---
+
+## 📚 Related Projects
+
+- [`Brunno13/api-bun`](https://github.com/Brunno13/api-bun) — Bun / Elysia backend and architectural reference.
+- [`Brunno13/app-kmp`](https://github.com/Brunno13/app-kmp) — Kotlin Multiplatform reusable base app.
+- [`Brunno13/app-react-native`](https://github.com/Brunno13/app-react-native) — React Native / Expo reusable base app.
+- [`Brunno13/app-flutter`](https://github.com/Brunno13/app-flutter) — Flutter reusable base app.
+
+---
+
+This repository is a reusable backend foundation. Features are marked complete only when implementation and validation are confirmed. MongoDB repository integration and ARM64 native startup are validated; production authentication, native x86-64 delivery, automated quality gates, and release/deploy automation remain future work.
