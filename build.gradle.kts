@@ -69,3 +69,29 @@ tasks.withType<Test> {
         "org.jboss.logmanager.LogManager"
     )
 }
+
+// Default quality gate: no MongoDB required.
+tasks.named<Test>("test") {
+    exclude("**/*IntegrationTest.class")
+
+    useJUnitPlatform {
+        excludeTags("mongodb-integration")
+    }
+}
+
+// Explicit MongoDB integration test task.
+tasks.register<Test>("mongoIntegrationTest") {
+    group = "verification"
+    description = "Runs MongoDB integration tests against a dedicated database"
+
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+
+    include("**/*IntegrationTest.class")
+
+    useJUnitPlatform {
+        includeTags("mongodb-integration")
+    }
+
+    outputs.upToDateWhen { false }
+}
