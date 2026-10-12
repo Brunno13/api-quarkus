@@ -86,4 +86,34 @@ class CreateUserUseCaseTest {
 
         assertEquals("User email must not be blank", error.message)
     }
+
+    @Test
+    fun `rejects malformed user emails before persistence`() {
+        val useCase = useCaseWithoutWrites()
+
+        val invalidEmails = listOf(
+            "invalid-email",
+            "person@@example.com",
+            "person@example",
+            "person name@example.com"
+        )
+
+        invalidEmails.forEach { email ->
+            val error = assertThrows(
+                IllegalArgumentException::class.java
+            ) {
+                useCase.execute(
+                    CreateUserCommand(
+                        name = "Example User",
+                        email = email
+                    )
+                )
+            }
+
+            assertEquals(
+                "User email has an invalid format",
+                error.message
+            )
+        }
+    }
 }

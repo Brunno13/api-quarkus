@@ -3,6 +3,7 @@ package br.com.brunno.features.users.infrastructure
 import br.com.brunno.features.users.domain.User
 import br.com.brunno.features.users.domain.UserRepository
 import br.com.brunno.features.users.domain.UserRole
+import br.com.brunno.features.users.domain.UserEmailAlreadyExistsException
 import br.com.brunno.support.MongoIntegrationTestProfile
 import com.mongodb.client.MongoClient
 import com.mongodb.client.model.Filters
@@ -139,12 +140,17 @@ class MongoUserRepositoryIntegrationTest {
         try {
             repository.create(original)
 
-            val error = assertThrows(MongoException::class.java) {
+            val error = assertThrows(
+                UserEmailAlreadyExistsException::class.java
+            ) {
                 repository.create(duplicate)
             }
 
+            val cause = error.cause
+
+            assertEquals(true, cause is MongoException)
             // MongoDB duplicate key error (E11000).
-            assertEquals(11000, error.code)
+            assertEquals(11000, (cause as MongoException).code)
 
             // The original user must remain unchanged.
             assertEquals(
@@ -197,11 +203,16 @@ class MongoUserRepositoryIntegrationTest {
 
             assertEquals(normalizedEmail, created.email)
 
-            val error = assertThrows(MongoException::class.java) {
+            val error = assertThrows(
+                UserEmailAlreadyExistsException::class.java
+            ) {
                 repository.create(duplicate)
             }
 
-            assertEquals(11000, error.code)
+            val cause = error.cause
+
+            assertEquals(true, cause is MongoException)
+            assertEquals(11000, (cause as MongoException).code)
 
             // Only the original user must exist.
             assertEquals(
