@@ -2,7 +2,7 @@
 
 Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-> **Current stage (October 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21** (class-file version 65). MongoDB Panache Kotlin, the `User` repository adapter, and the first versioned migration are implemented. Database-independent `clean check` and the dedicated **MongoDB 8.0 repository integration test** pass. A **Linux ARM64 Native Image** was compiled with **Mandrel 25** and validated in a JVM-free UBI Micro container. Real authentication, CI/CD publication, quality/security gates, and deployment to physical ARM64 hardware remain pending.
+> **Current stage (October 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21** (class-file version 65). MongoDB Panache Kotlin, the `User` repository adapter, and the first versioned migration are implemented. Database-independent `clean check` and the dedicated **MongoDB 8.0 repository integration suite (5 JUnit tests)** pass. A **Linux ARM64 Native Image** was compiled with **Mandrel 25** and validated in a JVM-free UBI Micro container. Real authentication, CI/CD publication, quality/security gates, and deployment to physical ARM64 hardware remain pending.
 
 ---
 
@@ -34,13 +34,14 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 - [x] Mock endpoint returned HTTP 404 in an earlier production-profile smoke test with the legacy database disabled; **revalidate after persistence migration**.
 - [x] Replaced legacy SQL dependencies with **MongoDB Panache Kotlin** and implemented `User`, `UserRepository`, document mapping, and a repository adapter.
 - [x] Normalized user e-mail addresses and validated `db/migrations/V001__users_email_unique.js` against MongoDB 8.0, including idempotency and negative paths.
-- [x] Validated `mongoIntegrationTest` against MongoDB 8.0: **1 JUnit test, 0 failures**, covering creation, lookup by UUID/e-mail, normalization, roles, and BSON identity.
+- [x] Validated `mongoIntegrationTest` against MongoDB 8.0: **5 JUnit tests, 0 failures**, covering creation and retrieval, missing UUID/e-mail lookups, normalization, unique-index duplicate rejection (`11000`), roles, and BSON identity.
 - [x] Generated a **Linux ARM64 Native Image** with Mandrel 25 via QEMU, then validated startup, `/status`, `/q/health`, and MongoDB connections in a **JVM-free UBI Micro** container.
 - [x] Built the ARM64 Docker image with `Dockerfile.native-arm64`; verified the packaged binary matches the compiled executable by SHA-256.
 
 ### 🔜 Next Steps
 
-- [ ] Expand MongoDB repository integration tests (missing users, duplicate e-mail, normalized duplicates, and failure paths) and establish secure production database configuration.
+- [ ] Design the first `users` application use case and eventual REST contract; the current `users` feature contains domain and MongoDB infrastructure, but no application service or `/users` endpoint.
+- [ ] Establish secure production MongoDB configuration and extend persistence coverage as new use cases require it (including update/delete if added).
 - [ ] Validate repository CRUD through the deployed Native Image and on the physical ARM64 target.
 - [ ] Integrate **Detekt** (required), business coverage, CPD, Gitleaks, Opengrep, Trivy, and architecture checks; establish measured baselines and verify failing paths.
 - [ ] Centralize template identity and introduce repeatable fork configuration (`--check` / `--apply`).
@@ -61,7 +62,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 | Database | **MongoDB 8.0 + Panache Kotlin (Repository pattern)** | Adapter implemented; migration V001 and isolated integration validated |
 | Authentication | Profile-scoped mock, SmallRye JWT, RBAC | Mock and error contract validated; secure flow pending |
 | Observability | SmallRye Health, JSON logging | Basic setup; hardening pending |
-| Testing | JUnit 5, Quarkus Test, REST Assured | Baseline 8 unit/HTTP tests; 1 MongoDB integration test PASS; database-free `check` PASS |
+| Testing | JUnit 5, Quarkus Test, REST Assured | Baseline 8 unit/HTTP tests; 5 MongoDB integration tests PASS; database-free `check` PASS |
 | Quality & Security | **Detekt required**; PMD CPD, Gitleaks, Opengrep, Trivy, coverage | Tool integration pending; Gradle `check` PASS |
 | Native Image | Mandrel / GraalVM 25; Quarkus UBI9 Micro | Linux ARM64 build and JVM-free container tested; native x86-64 planned |
 | CI/CD & Delivery | Woodpecker CI, Docker / OCI | ARM64 Dockerfile validated; automated CI, publication, deploy pending |
@@ -106,6 +107,8 @@ src/main/docker/
 - **Infrastructure** implements technical contracts, including repositories and token services.
 - **Shared** contains genuinely cross-cutting code, not unrelated feature business logic.
 - Cross-feature interactions should use explicit public contracts rather than importing another feature's internals.
+
+The `users` feature currently has only `domain` and `infrastructure` modules: application use cases and user REST resources are **planned**, not implemented. Current identified routes are `/auth/login` (dev/test mock) and `/status`.
 
 Architecture enforcement is a **planned quality gate**, not an existing check.
 
@@ -203,7 +206,7 @@ JUnit 5 tests cover the `LoginUseCase` directly, without HTTP, CDI, Docker, or a
 
 ### MongoDB Integration Tests
 
-The dedicated `mongoIntegrationTest` task was **validated against an isolated MongoDB 8.0 instance** (1 JUnit test, 0 failures). The test exercises user creation, lookup by UUID and normalized e-mail, role mapping, BSON `_id`, and cleanup of its generated document. Database names must start with `api_quarkus_it_`; use restricted credentials and an isolated environment.
+The dedicated `mongoIntegrationTest` task was **validated against an isolated MongoDB 8.0 instance** (**5 JUnit tests, 0 failures, 0 errors, 0 skipped**). Coverage includes user creation and retrieval, missing UUID/e-mail lookups returning `null`, normalized e-mail persistence and BSON `_id`, duplicate e-mails rejected by the unique MongoDB index (`11000`), and duplicates after case/whitespace normalization. Tests clean up only the documents they create. Database names must start with `api_quarkus_it_`; use restricted credentials and an isolated environment.
 
 ```bash
 # Run against a dedicated database with migration V001 already applied.
@@ -216,7 +219,7 @@ User e-mails are normalized (trim + `Locale.ROOT` lowercase). The migration `db/
 
 ### Coverage & Quality Gates
 
-The intended toolchain is **Detekt** (required for Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), and a coverage reporter (JaCoCo or Kover, to be selected). The database-independent Gradle `check` and the explicit MongoDB integration test have passed; scanner and coverage integration is pending.
+The intended toolchain is **Detekt** (required for Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), and a coverage reporter (JaCoCo or Kover, to be selected). The database-independent Gradle `check` and the explicit five-test MongoDB integration suite have passed; scanner and coverage integration is pending.
 
 Quality policy:
 
@@ -337,4 +340,4 @@ Compilation and scanning must run on **build runners**, not production runtime n
 
 ---
 
-This repository is a reusable backend foundation. Features are marked complete only when implementation and validation are confirmed. MongoDB repository integration and ARM64 native startup are validated; production authentication, native x86-64 delivery, automated quality gates, and release/deploy automation remain future work.
+This repository is a reusable backend foundation. Features are marked complete only when implementation and validation are confirmed. MongoDB repository integration (5/5 tests) and ARM64 native startup are validated; production authentication, native x86-64 delivery, automated quality gates, and release/deploy automation remain future work.
