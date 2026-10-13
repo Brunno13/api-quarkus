@@ -31,6 +31,7 @@ dependencies {
 
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("io.rest-assured:rest-assured")
+    testImplementation("io.quarkus:quarkus-test-security")
 }
 
 group = "br.com.brunno"
