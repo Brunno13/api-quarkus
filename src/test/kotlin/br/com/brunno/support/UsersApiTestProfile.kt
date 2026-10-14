@@ -14,7 +14,8 @@ class UsersApiTestProfile : QuarkusTestProfile {
         mapOf(
             "app.persistence.mongodb.enabled" to "true",
             "quarkus.mongodb.devservices.enabled" to "false",
-            "quarkus.mongodb.health.enabled" to "false"
+            "quarkus.mongodb.health.enabled" to "false",
+            "mp.jwt.verify.issuer" to "api-quarkus"
         )
 
     override fun getEnabledAlternatives(): Set<Class<*>> =
