@@ -100,7 +100,7 @@ class CreateUserUseCaseTest {
 
         invalidEmails.forEach { email ->
             val error = assertThrows(
-                IllegalArgumentException::class.java
+                InvalidUserEmailFormatException::class.java
             ) {
                 useCase.execute(
                     CreateUserCommand(

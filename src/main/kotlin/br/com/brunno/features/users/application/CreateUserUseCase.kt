@@ -29,8 +29,8 @@ class CreateUserUseCase(
             "User email must not be blank"
         }
 
-        require(UserEmail.isValid(email)) {
-            "User email has an invalid format"
+        if (!UserEmail.isValid(email)) {
+            throw InvalidUserEmailFormatException()
         }
 
         val user = User(
