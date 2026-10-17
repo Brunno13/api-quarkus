@@ -2,7 +2,7 @@
 
 Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-> **Current stage (October 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21** (class-file version 65). MongoDB Panache Kotlin, the `User` repository adapter, and migration V001 are implemented; **5 MongoDB 8.0 integration tests** pass. The `users` application use cases and **ADMIN-protected `GET /users/{id}` and `POST /users`** are implemented, with HTTP validation of authorization and error contracts. **RS256 JWT verification is validated in five HTTP tests** (valid ADMIN/USER roles, wrong issuer, tampered signature, and expiration) using test-only keys; production key management, real credential-based login, and token issuance remain pending. Database-independent `clean check` passes. A **Linux ARM64 Native Image** was built with **Mandrel 25** and validated in a JVM-free UBI Micro container. Automated quality/security gates, CI/CD publication, and deployment to physical ARM64 hardware remain pending.
+> **Current stage (October 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21** (class-file version 65). MongoDB Panache Kotlin, the `User` repository adapter, and migration V001 are implemented; **5 MongoDB 8.0 integration tests** pass. The `users` application use cases and **ADMIN-protected `GET /users/{id}` and `POST /users`** are implemented, with HTTP validation of authorization and error contracts. **RS256 JWT verification is validated in five HTTP tests** (valid ADMIN/USER roles, wrong issuer, tampered signature, and expiration) using automatically generated test keys. Separately, a local production-profile JVM smoke test validated external RSA public-key verification and RBAC; managed key provisioning/rotation, credential-based login, and token issuance remain pending. Database-independent `clean check` passes. A **Linux ARM64 Native Image** was built with **Mandrel 25** and validated in a JVM-free UBI Micro container. Automated quality/security gates, CI/CD publication, and deployment to physical ARM64 hardware remain pending.
 
 ---
 
@@ -15,7 +15,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 - **Persistence Foundation:** MongoDB Panache Kotlin, domain repository contracts, normalized e-mail addresses, and explicit versioned index migrations.
 - **User Administration API:** `GET /users/{id}` and `POST /users` with `ADMIN` authorization, use-case isolation, input validation, and HTTP 200/201/400/401/403/404/409 contracts.
 - **Development Bootstrap:** Local Quarkus dev mode and current unit/API tests run without requiring Docker or a database.
-- **Authentication Foundation:** Profile-limited mock login (`dev`/`test`) and standardized errors; real RS256 JWT verification and role-based authorization validated in HTTP tests. Production signing keys, credential-based login, refresh, and session controls remain planned.
+- **Authentication Foundation:** Profile-limited mock login (`dev`/`test`) and standardized errors; real RS256 JWT verification and role-based authorization validated in HTTP tests. External RSA public-key verification was also validated in a local `prod` JVM smoke test; production signing, managed key rotation, credential-based login, refresh, and session controls remain planned.
 - **Quality-First Direction:** Database-independent `gradle check` and an explicitly invoked MongoDB integration test; Detekt, coverage, CPD, Gitleaks, Opengrep, and Trivy remain planned gates.
 - **Portable Delivery:** Validated Native Image for `linux/arm64` in a JVM-free OCI runtime. Automated Woodpecker delivery and native `linux/amd64` builds are planned for later phases.
 
@@ -32,19 +32,20 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 - [x] Four unit tests (`LoginUseCaseTest`) and four HTTP tests (`AuthResourceTest`): **8 passed, 0 failures**.
 - [x] `clean check` and JVM packaging validated after upgrades to **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**.
 - [x] Java 21 bytecode verified (`major version: 65`); toolchain upgrade pushed in commit `8d5fa0b`.
-- [x] Mock endpoint returned HTTP 404 in an earlier production-profile smoke test with the legacy database disabled; **revalidate after persistence migration**.
+- [x] Mock login returned HTTP 404 in a local `prod` JVM smoke test after the MongoDB persistence migration.
 - [x] Replaced legacy SQL dependencies with **MongoDB Panache Kotlin** and implemented `User`, `UserRepository`, document mapping, and a repository adapter.
 - [x] Normalized user e-mail addresses and validated `db/migrations/V001__users_email_unique.js` against MongoDB 8.0, including idempotency and negative paths.
 - [x] Validated `mongoIntegrationTest` against MongoDB 8.0: **5 JUnit tests, 0 failures**, covering creation and retrieval, missing UUID/e-mail lookups, normalization, unique-index duplicate rejection (`11000`), roles, and BSON identity.
 - [x] Implemented and unit-tested `CreateUserUseCase`, `GetUserByIdUseCase`, and `GetUserByEmailUseCase`, with normalized e-mail validation and default `USER` assignment on creation.
 - [x] Implemented `GET /users/{id}` and `POST /users`, protected by `@RolesAllowed("ADMIN")`; **11 HTTP tests** cover 200/201 success paths, 401/403 authorization, 404 missing users, 400 validation, and 409 duplicate e-mail handling.
 - [x] Added `quarkus-smallrye-jwt-build` and validated **5 real RS256 JWT HTTP tests** without `@TestSecurity`: ADMIN 200, USER 403, wrong issuer 401, altered signature 401, and expired token 401. Signing/verification keys are automatically supplied in the test environment; this does not establish a production login flow.
+- [x] Validated external RSA 3072 JWT verification in a local `prod` JVM smoke test: `/status` 200, mock `/auth/login` 404, protected endpoint without JWT 401, valid USER JWT 403, and tampered JWT 401.
 - [x] Generated a **Linux ARM64 Native Image** with Mandrel 25 via QEMU, then validated startup, `/status`, `/q/health`, and MongoDB connections in a **JVM-free UBI Micro** container.
 - [x] Built the ARM64 Docker image with `Dockerfile.native-arm64`; verified the packaged binary matches the compiled executable by SHA-256.
 
 ### 🔜 Next Steps
 
-- [ ] Configure externally managed signing and verification keys, issuer and other JWT validation settings for each deployment environment; validate production-profile JWT verification with non-test keys.
+- [ ] Establish managed JWT key provisioning and rotation for each deployment environment, implement production token signing, define issuer/audience policies, and validate deployed secrets management.
 - [ ] Implement real credential persistence and secure password hashing, then replace the development-only login mock with a production authentication flow that issues signed access tokens.
 - [ ] Validate `users` HTTP endpoints end-to-end with MongoDB and real JWT authentication, including error responses and startup behavior in the production profile.
 - [ ] Establish secure production MongoDB configuration and extend persistence coverage as new use cases require it (including update/delete if added).
@@ -66,7 +67,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 | Framework & DI | **Quarkus 3.40.1 LTS**, REST, Jackson, CDI / Arc | Validated |
 | Validation & Docs | Hibernate Validator, SmallRye OpenAPI / Swagger | Configured |
 | Database | **MongoDB 8.0 + Panache Kotlin (Repository pattern)** | Adapter implemented; migration V001 and isolated integration validated |
-| Authentication | Profile-scoped mock, SmallRye JWT Verify / Build, RBAC | Five signed-JWT HTTP tests PASS with test-only keys; production key management and credential-based login pending |
+| Authentication | Profile-scoped mock, SmallRye JWT Verify / Build, RBAC | Five signed-JWT HTTP tests PASS; external public-key verification and RBAC validated in a local `prod` JVM smoke test; managed keys and credential-based login pending |
 | Observability | SmallRye Health, JSON logging | Basic setup; hardening pending |
 | Testing | JUnit 5, Quarkus Test, REST Assured, test-security | Original 8-test baseline, 11 users REST HTTP scenarios, 5 JWT HTTP scenarios, and 5 dedicated MongoDB integration tests validated; database-free `check` PASS |
 | Quality & Security | **Detekt required**; PMD CPD, Gitleaks, Opengrep, Trivy, coverage | Tool integration pending; Gradle `check` PASS |
@@ -146,9 +147,9 @@ A centralized, versioned **non-secret identity contract**, together with an idem
 
 - **Development and tests:** The ordinary `dev`/`test` configuration avoids an external MongoDB dependency. `users` HTTP tests use `UsersApiTestProfile` to enable the resource and inject an alternative test repository; `@TestSecurity` covers simulated identities, while separate JWT HTTP tests authenticate real signed Bearer tokens.
 - **Production:** MongoDB connection settings must be injected securely at runtime (for example, `QUARKUS_MONGODB_CONNECTION_STRING` and `QUARKUS_MONGODB_DATABASE`). Only isolated MongoDB 8.0 repository tests have been validated; production database deployment and HTTP-to-MongoDB integration remain pending.
-- **Mock login:** `/auth/login` and its fixed development credentials are included only in `dev` and `test` builds, returning a non-functional example token. Their absence was verified in an earlier production-profile smoke test, before the persistence migration; revalidation is pending. **Never treat the mock as real authentication.**
-- **JWT and RBAC:** `quarkus-smallrye-jwt` and `quarkus-smallrye-jwt-build` are installed. Five HTTP tests validate RS256 Bearer tokens, role enforcement, issuer verification, signature rejection, and expiration. These tests rely on automatically provided test keys; **production signing/verifying keys are not yet configured**, and no real JWT login issuer has been implemented.
-- **Remaining security work:** Secure password storage, production-key injection/rotation, refresh and revocation, session handling, CORS policy, and production-profile verification.
+- **Mock login:** `/auth/login` and its fixed development credentials are included only in `dev` and `test` builds, returning a non-functional example token. Their absence was revalidated after the MongoDB persistence migration: `POST /auth/login` returned HTTP 404 in the local `prod` JVM smoke test. **Never treat the mock as real authentication.**
+- **JWT and RBAC:** `quarkus-smallrye-jwt` and `quarkus-smallrye-jwt-build` are installed. Five HTTP tests validate RS256 Bearer tokens, role enforcement, issuer verification, signature rejection, and expiration. The HTTP tests use automatic test keys; the `prod` profile accepts an externally supplied RSA public key (`JWT_PUBLIC_KEY_LOCATION`) and issuer (`JWT_ISSUER`). A local JVM smoke test verified valid USER JWT rejection by RBAC (403) and tampered-signature rejection (401). Operational key provisioning/rotation and real JWT issuance remain pending.
+- **Remaining security work:** Secure password storage, production-key injection/rotation, refresh and revocation, session handling, CORS policy, and end-to-end ADMIN authorization with MongoDB in the production profile.
 - Secrets must come from environment injection or a secret manager, never source control or logs.
 
 ---
@@ -211,7 +212,7 @@ JUnit 5 tests cover the `LoginUseCase` directly, without HTTP, CDI, Docker, or a
 
 `@QuarkusTest` and REST Assured exercise the mock-login HTTP contract, including successful login, invalid credentials (401), invalid e-mail (400), and blank password (400). The administrative `users` API adds **11 HTTP scenarios** covering `GET /users/{id}` and `POST /users`: 200/201 success, 401 unauthenticated, 403 unauthorized, 404 missing user, 400 invalid input, and 409 duplicate e-mail. These use an alternative test repository and do not connect to MongoDB.
 
-A separate **5-test RS256 JWT HTTP suite** (`UserResourceJwtTest`) sends actual signed Bearer tokens through the Quarkus verifier and RBAC layer, without `@TestSecurity`: ADMIN accepted (200), USER forbidden (403), wrong issuer (401), altered signature (401), and expired token (401). Keys are test-only; the results do not validate production key provisioning or credential-based login.
+A separate **5-test RS256 JWT HTTP suite** (`UserResourceJwtTest`) sends actual signed Bearer tokens through the Quarkus verifier and RBAC layer, without `@TestSecurity`: ADMIN accepted (200), USER forbidden (403), wrong issuer (401), altered signature (401), and expired token (401). These five test cases use automatic test keys; separate local JVM `prod` smoke tests validated external RSA public-key verification and RBAC, but not managed key provisioning, credential-based login, or MongoDB-backed ADMIN operations.
 
 ```powershell
 .\gradlew.bat test --tests "*UserResourceJwtTest" --console=plain
