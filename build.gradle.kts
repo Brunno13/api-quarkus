@@ -27,6 +27,7 @@ dependencies {
 
     implementation("io.quarkus:quarkus-smallrye-jwt")
     implementation("io.quarkus:quarkus-smallrye-jwt-build")
+    implementation("io.quarkus:quarkus-elytron-security-common")
     implementation("io.quarkus:quarkus-smallrye-health")
     implementation("io.quarkus:quarkus-logging-json")
 
