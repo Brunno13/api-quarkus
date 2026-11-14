@@ -2,13 +2,13 @@
 
 Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-> **Current stage (October 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21** (class-file version 65). MongoDB Panache Kotlin, the `User` repository adapter, and migration V001 are implemented; **5 MongoDB 8.0 integration tests** pass. The `users` application use cases and **ADMIN-protected `GET /users/{id}` and `POST /users`** are implemented, with HTTP validation of authorization and error contracts. **RS256 JWT verification is validated in five HTTP tests** (valid ADMIN/USER roles, wrong issuer, tampered signature, and expiration) using automatically generated test keys. Separately, a local production-profile JVM smoke test validated external RSA public-key verification and RBAC; managed key provisioning/rotation, credential-based login, and token issuance remain pending. Credential hashing (BCrypt cost 12), separate MongoDB credential persistence, migration V002, and four MongoDB credential integration tests are validated. Database-independent `clean check` passes. A **Linux ARM64 Native Image** was built with **Mandrel 25** and validated in a JVM-free UBI Micro container. Automated quality/security gates, CI/CD publication, and deployment to physical ARM64 hardware remain pending.
+> **Current stage (November 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21** (class-file version 65). MongoDB Panache Kotlin, the `User` repository adapter, and migration V001 are implemented; **5 MongoDB 8.0 integration tests** pass. The `users` application use cases and **ADMIN-protected `GET /users/{id}` and `POST /users`** are implemented, with HTTP validation of authorization and error contracts. **RS256 JWT verification is validated in five HTTP tests** (valid ADMIN/USER roles, wrong issuer, tampered signature, and expiration) using automatically generated test keys. Separately, a local production-profile JVM smoke test validated external RSA public-key verification and RBAC; managed key provisioning/rotation, credential-based login, and token issuance remain pending. Credential hashing (BCrypt cost 12), separate MongoDB credential persistence, migration V002, and four MongoDB credential integration tests are validated. An ADMIN-only initial credential provisioning endpoint is implemented and validated with application, HTTP, and signed RS256 JWT tests (75 standard tests passing). Production end-to-end MongoDB provisioning remains pending. Database-independent `clean check` passes. A **Linux ARM64 Native Image** was built with **Mandrel 25** and validated in a JVM-free UBI Micro container. Automated quality/security gates, CI/CD publication, and deployment to physical ARM64 hardware remain pending.
 
 ---
 
 ## 🚀 Key Features
 
-- **Credential Persistence Foundation:** BCrypt password hashing, isolated `UserCredential` domain, MongoDB credential repository, and versioned collection migration. Real login and token issuance remain pending.
+- **Credential Persistence and Provisioning:** BCrypt password hashing, isolated `UserCredential` domain, MongoDB repository, versioned migration, and ADMIN-only initial credential provisioning. Real login and token issuance remain pending.
 - **Reusable Backend Foundation:** Start a new API from a fork without coupling business code to a specific product or hosting environment.
 - **Modular Architecture:** Feature-first organization with pragmatic Clean Architecture (`api`, `application`, `domain`, `infrastructure`).
 - **REST & API Documentation:** Quarkus REST, Jackson, Bean Validation, OpenAPI / Swagger UI.
@@ -26,6 +26,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 
 ### ✅ Completed (validated checkpoints)
 
+- [x] Implemented ADMIN-only initial credential provisioning through `PUT /users/{id}/credentials`, with 5 application tests, 8 HTTP tests, and 5 signed RS256 JWT HTTP tests. The database-independent `clean check` passes all 75 tests.
 - [x] Implemented BCrypt password hashing (cost 12, five tests), separate credential domain (three tests), MongoDB mapping (five tests), and credential repository (four MongoDB 8.0.32 integration tests). Validated V002 migration, idempotency, uniqueness, and negative scenarios using disposable test databases.
 - [x] Kotlin / Gradle Kotlin DSL / Quarkus project bootstrap and feature-first structure.
 - [x] Quarkus REST, Jackson, CDI, Bean Validation, Swagger/OpenAPI, Health, and `GET /status`.
@@ -48,7 +49,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 ### 🔜 Next Steps
 
 - [ ] Establish managed JWT key provisioning and rotation for each deployment environment, implement production token signing, define issuer/audience policies, and validate deployed secrets management.
-- [ ] Implement secure credential enrollment and password recovery, then replace the development-only login mock with a production flow that verifies persisted credentials and issues signed access tokens.
+- [ ] Complete credential recovery, initial ADMIN bootstrap, password policy, and production end-to-end provisioning validation; then replace the development-only login mock with a production flow that verifies persisted credentials and issues signed access tokens.
 - [ ] Validate `users` HTTP endpoints end-to-end with MongoDB and real JWT authentication, including error responses and startup behavior in the production profile.
 - [ ] Establish secure production MongoDB configuration and extend persistence coverage as new use cases require it (including update/delete if added).
 - [ ] Validate repository CRUD through the deployed Native Image and on the physical ARM64 target.
@@ -147,7 +148,8 @@ A centralized, versioned **non-secret identity contract**, together with an idem
 
 ## 🔐 Security & Environments
 
-- **Credential storage:** Passwords are hashed using BCrypt (cost 12), with rejection of invalid inputs and hashes. Credentials are stored separately in `user_credentials`, indexed by the user UUID as MongoDB `_id`. Password hashes are excluded from the `User` domain and administrative API responses. Credential enrollment, operational key management, and production login are not yet implemented.
+- **Initial credential provisioning:** `PUT /users/{id}/credentials` requires the ADMIN role, accepts a password without returning it, and returns HTTP `204` on success. Invalid passwords return `400`, unauthenticated requests `401`, insufficient roles `403`, missing users `404`, and existing credentials `409`. The operation does not replace an existing password. Current hashing validation requires nonblank input of at most 72 UTF-8 bytes; a complete password policy is still pending.
+- **Credential storage:** Passwords are hashed using BCrypt (cost 12), with rejection of invalid inputs and hashes. Credentials are stored separately in `user_credentials`, indexed by the user UUID as MongoDB `_id`. Password hashes are excluded from the `User` domain and administrative API responses. ADMIN-only initial credential provisioning is implemented, but password recovery, first-ADMIN bootstrap, operational key management, production login, and end-to-end production provisioning validation remain pending.
 - **Development and tests:** The ordinary `dev`/`test` configuration avoids an external MongoDB dependency. `users` HTTP tests use `UsersApiTestProfile` to enable the resource and inject an alternative test repository; `@TestSecurity` covers simulated identities, while separate JWT HTTP tests authenticate real signed Bearer tokens.
 - **Production:** MongoDB connection settings must be injected securely at runtime (for example, `QUARKUS_MONGODB_CONNECTION_STRING` and `QUARKUS_MONGODB_DATABASE`). Only isolated MongoDB 8.0 repository tests have been validated; production database deployment and HTTP-to-MongoDB integration remain pending.
 - **Mock login:** `/auth/login` and its fixed development credentials are included only in `dev` and `test` builds, returning a non-functional example token. Their absence was revalidated after the MongoDB persistence migration: `POST /auth/login` returned HTTP 404 in the local `prod` JVM smoke test. **Never treat the mock as real authentication.**
