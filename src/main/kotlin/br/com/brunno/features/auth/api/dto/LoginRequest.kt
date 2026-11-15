@@ -18,4 +18,8 @@ data class LoginRequest(
             password = password
         )
     }
+
+    // Prevent accidental disclosure of credentials in application logs.
+    override fun toString(): String =
+        "LoginRequest(email=[REDACTED], password=[REDACTED])"
 }
