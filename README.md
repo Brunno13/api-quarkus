@@ -2,13 +2,14 @@
 
 Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-> **Current stage (November 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**. The ADMIN-protected users API, BCrypt (cost 12) credential provisioning, MongoDB repositories, and migrations V001/V002 are implemented. **Production `POST /auth/login` now verifies persisted credentials and issues RS256-signed Bearer access tokens** using an external RSA key pair; the `dev`/`test` endpoint remains an isolated mock. A disposable MongoDB 8.0.32 end-to-end run validated registration, credential provisioning, real USER login, JWT signature/claims, ADMIN/USER authorization, and error responses. **The database-independent `clean check` passes 119 tests**, and `quarkusBuild` plus production startup/key-failure smoke tests pass. Earlier Linux ARM64 Native Image and JVM-free UBI Micro smoke tests remain validated for the foundation, but Native Image has **not** been rebuilt with this authentication increment. Initial ADMIN bootstrap, managed key rotation, recovery/refresh/revocation, CI security gates, and production deployment remain pending.
+> **Current stage (November 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**. The ADMIN-protected users API, BCrypt (cost 12) credential provisioning, MongoDB repositories, and migrations V001/V002 are implemented. Production `POST /auth/login` verifies persisted credentials and issues RS256 Bearer tokens; the `dev`/`test` endpoint remains an isolated mock. A **one-time, interactive first-ADMIN bootstrap command**, packaged separately from the API and requiring an HTTP-disabled `prod` runtime, is implemented and validated on disposable MongoDB 8.0 data. **150 database-independent tests and seven dedicated MongoDB bootstrap integration tests passed**; a full operational E2E then confirmed persisted ADMIN login, JWT signature/claims, denial of a second bootstrap, and audited cleanup. The prior ARM64 Native Image smoke tests remain valid for the foundation, but Native Image has **not** been rebuilt with the latest authentication features. Managed key rotation, recovery/refresh/revocation, CI security gates, and production deployment remain pending.
 
 ---
 
 ## 🚀 Key Features
 
 - **Credential Persistence and Provisioning:** BCrypt (cost 12), isolated `UserCredential` domain, MongoDB repository and migrations, ADMIN-only initial provisioning, and verified credential-based production login.
+- **First ADMIN Bootstrap:** One-time interactive Quarkus command-mode entrypoint (not an HTTP route), with exclusive MongoDB reservation, fail-closed writes, and separate JVM packaging.
 - **Reusable Backend Foundation:** Start a new API from a fork without coupling business code to a specific product or hosting environment.
 - **Modular Architecture:** Feature-first organization with pragmatic Clean Architecture (`api`, `application`, `domain`, `infrastructure`).
 - **REST & API Documentation:** Quarkus REST, Jackson, Bean Validation, OpenAPI / Swagger UI.
@@ -26,9 +27,10 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 
 ### ✅ Completed (validated checkpoints)
 
+- [x] Implemented and validated a one-time first-ADMIN CLI: explicit database confirmation, hidden password input, `prod` profile, HTTP-disabled command-mode artifact, and permanent MongoDB `_id` reservation with journal-acknowledged credential storage. **150/150** standard tests and **7/7** dedicated MongoDB bootstrap integration tests passed. Separate disposable-container E2E validated creation of the ADMIN, rejection of a second attempt without data changes, persisted ADMIN login (200), RS256 JWT signature and ADMIN authorization (200), rejected missing token and bad password (401), and audited database cleanup.
 - [x] Implemented real `prod` `POST /auth/login`: normalized e-mail lookup, persisted BCrypt credential verification, RS256 signing (`sub` UUID / `groups` roles), external PKCS#8 private/public PEM matching, CDI startup validation and generic 401 for invalid credentials. `dev`/`test` retain their isolated mock.
 - [x] Validated production login with **119/119** standard tests, a successful `quarkusBuild`, startup smoke tests for valid/missing/mismatched keys, and a disposable MongoDB HTTP E2E run with signed tokens and USER/ADMIN RBAC checks. Test credentials, keys, database, and staging files were cleaned up.
-- [x] Validated the existing `POST /users`, `PUT /users/{id}/credentials`, `GET /users/{id}`, and production `POST /auth/login` in an isolated MongoDB HTTP E2E run, including startup, 401/403/409 responses, JWT signature/claims, and cleanup (ADMIN bootstrap JWT is test-generated; persisted ADMIN login is not yet covered).
+- [x] Validated the existing `POST /users`, `PUT /users/{id}/credentials`, `GET /users/{id}`, and production `POST /auth/login` in an isolated MongoDB HTTP E2E run, including startup, 401/403/409 responses, JWT signature/claims, and cleanup (at the time, the ADMIN token was test-generated; persisted ADMIN login was covered later in phase 2.14).
 - [x] Implemented ADMIN-only initial credential provisioning through `PUT /users/{id}/credentials`, with 5 application tests, 8 HTTP tests, and 5 signed RS256 JWT HTTP tests. The **phase 2.12 baseline** passed 75 standard tests.
 - [x] Implemented BCrypt password hashing (cost 12, five tests), separate credential domain (three tests), MongoDB mapping (five tests), and credential repository (four MongoDB 8.0.32 integration tests). Validated V002 migration, idempotency, uniqueness, and negative scenarios using disposable test databases.
 - [x] Kotlin / Gradle Kotlin DSL / Quarkus project bootstrap and feature-first structure.
@@ -52,7 +54,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 ### 🔜 Next Steps
 
 - [ ] Establish managed JWT key provisioning and rotation per environment; formalize issuer/audience policies and validate deployed secrets management. RS256 signing with externally supplied files is already implemented.
-- [ ] Implement initial ADMIN bootstrap, credential recovery and password policy. The `dev`/`test` mock and `prod` persisted login already coexist as separate resources.
+- [ ] Implement credential recovery and a stronger password policy; the one-time first-ADMIN bootstrap and production login are now implemented. A consumed bootstrap reservation requires explicit administrative recovery if any later write fails.
 - [ ] Establish secure production MongoDB configuration and extend persistence coverage as new use cases require it (including update/delete if added).
 - [ ] Validate repository CRUD through the deployed Native Image and on the physical ARM64 target.
 - [ ] Integrate **Detekt** (required), business coverage, CPD, Gitleaks, Opengrep, Trivy, and architecture checks; establish measured baselines and verify failing paths.
@@ -72,9 +74,9 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 | Framework & DI | **Quarkus 3.40.1 LTS**, REST, Jackson, CDI / Arc | Validated |
 | Validation & Docs | Hibernate Validator, SmallRye OpenAPI / Swagger | Configured |
 | Database | **MongoDB 8.0 + Panache Kotlin (Repository pattern)** | Adapter implemented; migration V001 and isolated integration validated |
-| Authentication | Profile-scoped mock, persisted login, BCrypt, SmallRye JWT Verify / Build, RBAC | Production RS256 issuance and external-key startup checks validated; MongoDB HTTP E2E PASS; managed key rotation and recovery pending |
+| Authentication | Profile-scoped mock, persisted login, first-ADMIN CLI, BCrypt, SmallRye JWT Verify / Build, RBAC | RS256 issuance and external-key startup checks validated; one-time ADMIN bootstrap and persisted ADMIN login E2E PASS; managed key rotation/recovery pending |
 | Observability | SmallRye Health, JSON logging | Basic setup; hardening pending |
-| Testing | JUnit 5, Quarkus Test, REST Assured, test-security | **119/119** database-independent tests PASS; dedicated MongoDB repository tests and isolated production HTTP E2E validated |
+| Testing | JUnit 5, Quarkus Test, REST Assured, test-security | **150/150** database-independent tests PASS; **7/7** bootstrap MongoDB integration tests and isolated production ADMIN E2E PASS |
 | Quality & Security | **Detekt required**; PMD CPD, Gitleaks, Opengrep, Trivy, coverage | Tool integration pending; Gradle `check` PASS |
 | Native Image | Mandrel / GraalVM 25; Quarkus UBI9 Micro | Linux ARM64 build and JVM-free container tested; native x86-64 planned |
 | CI/CD & Delivery | Woodpecker CI, Docker / OCI | ARM64 Dockerfile validated; automated CI, publication, deploy pending |
@@ -92,7 +94,8 @@ src/main/kotlin/br/com/brunno/
 ├── features/
 │   ├── auth/
 │   │   ├── api/             # Profile-specific login REST resources and DTOs
-│   │   ├── application/     # Credential verification, login orchestration, token contract
+│   │   ├── cli/             # Isolated one-time first-ADMIN command entrypoint
+│   │   ├── application/     # Credential verification, login, and bootstrap use cases
 │   │   ├── domain/          # Credential domain and repository contract
 │   │   └── infrastructure/  # BCrypt, MongoDB credentials, RSA key loading and token issuer
 │   └── users/
@@ -154,13 +157,38 @@ A centralized, versioned **non-secret identity contract**, together with an idem
 ## 🔐 Security & Environments
 
 - **Initial credential provisioning:** `PUT /users/{id}/credentials` requires the ADMIN role, accepts a password without returning it, and returns HTTP `204` on success. Invalid passwords return `400`, unauthenticated requests `401`, insufficient roles `403`, missing users `404`, and existing credentials `409`. The operation does not replace an existing password. Current hashing validation requires nonblank input of at most 72 UTF-8 bytes; a complete password policy is still pending.
-- **Credential storage:** Passwords are hashed using BCrypt (cost 12), with rejection of invalid inputs and hashes. Credentials are stored separately in `user_credentials`, indexed by the user UUID as MongoDB `_id`. Password hashes are excluded from the `User` domain and API responses. ADMIN-only initial provisioning and end-to-end production provisioning/login are validated; recovery and first-ADMIN bootstrap remain pending.
+- **Credential storage:** Passwords are hashed using BCrypt (cost 12), with rejection of invalid inputs and hashes. Credentials are stored separately in `user_credentials`, indexed by the user UUID as MongoDB `_id`. Password hashes are excluded from the `User` domain and API responses. ADMIN provisioning, first-ADMIN bootstrap, and production login have been validated in isolated MongoDB runs; password recovery remains pending.
 - **Development and tests:** The ordinary `dev`/`test` configuration avoids an external MongoDB dependency. `users` HTTP tests use `UsersApiTestProfile` to enable the resource and inject an alternative test repository; `@TestSecurity` covers simulated identities, while separate JWT HTTP tests authenticate real signed Bearer tokens.
 - **Production:** Inject MongoDB connection settings securely at runtime using `MONGODB_URI` and `MONGODB_DATABASE` (the configured property expressions). Disposable MongoDB 8.0.32 HTTP E2E validation passed; real deployment, network restrictions, backup, and secret provisioning have not been validated.
 - **Mock login:** The `dev`/`test` `/auth/login` uses fixed development credentials and returns a non-functional example token. It is excluded from `prod`, where a distinct `/auth/login` resource authenticates persisted credentials and issues RS256 JWTs. The earlier `prod` HTTP 404 result applies only to the pre-2.13 build. **Never treat the mock as real authentication.**
 - **JWT and RBAC:** `quarkus-smallrye-jwt` and `quarkus-smallrye-jwt-build` are installed. RS256 issuer and verifier use externally supplied matching PEM keys in `prod`; startup rejects missing or mismatched private keys. Claims include UUID `sub`, e-mail `upn`, `groups`, `iss`, `iat`, and `exp`. Five original signed-JWT HTTP tests and the production E2E validate verification and role enforcement. Managed key provisioning/rotation remains pending.
-- **Remaining security work:** Managed production-key deployment/rotation, initial ADMIN bootstrap, password recovery, rate limiting, refresh/revocation, session handling, CORS/trusted-proxy policy, persisted ADMIN login coverage, and production deployment hardening.
+- **Remaining security work:** Managed production-key deployment/rotation, password recovery and policy, rate limiting, refresh/revocation, session handling, CORS/trusted-proxy policy, bootstrap incident-recovery procedure, and production deployment hardening.
 - Secrets must come from environment injection or a secret manager, never source control or logs.
+
+### First ADMIN bootstrap (separate administrative artifact)
+
+The initial administrator is created **only via an interactive command**, never an HTTP endpoint. Its `@QuarkusMain(name = "bootstrap-admin")` entrypoint must be selected **at build time**, separately from the normal `build/quarkus-app/` API. This functionality is not intended as a public registration flow.
+
+**Preconditions:** provision a restricted MongoDB database and verify migrations V001/V002 before first use; verify there is no existing ADMIN or `admin_bootstrap` reservation; arrange maintenance access, backups and externally managed matching RSA keys; restrict the administrative runtime to the MongoDB network, with **no published HTTP ports**. Do not invoke bootstrap on an unfamiliar or previously used database.
+
+Example build on Linux/macOS from the repository root (use equivalent process environment variables on PowerShell):
+
+```bash
+QUARKUS_PACKAGE_MAIN_CLASS=bootstrap-admin \
+QUARKUS_PACKAGE_OUTPUT_DIRECTORY=bootstrap-admin \
+QUARKUS_HTTP_HOST_ENABLED=false \
+./gradlew quarkusBuild --rerun-tasks --no-daemon --console=plain
+```
+
+The complete fast-jar package is `build/bootstrap-admin/` (including `quarkus-run.jar`, `app/`, `lib/`, and `quarkus/`). Keep it separate from the normal API package at `build/quarkus-app/`. Build-time selection does not replace **runtime** HTTP disablement.
+
+At runtime, supply `QUARKUS_PROFILE=prod`, `QUARKUS_HTTP_HOST_ENABLED=false`, `MONGODB_URI`, `MONGODB_DATABASE`, `JWT_ISSUER`, `JWT_PUBLIC_KEY_LOCATION`, and `APP_AUTH_JWT_PRIVATE_KEY_PATH` through a protected environment or secret manager. The matching RSA keys must already be present: `prod` startup validates them. Run with a real system console (for example an interactive, network-restricted container), **not** piped stdin. Do not pass passwords in CLI arguments, shell history, logs, or environment variables. No HTTP ports should be published.
+
+The command displays the database name and an exact `bootstrap <database-name>` confirmation line **without quotation marks**. Only then does it request administrator name, e-mail, password and password confirmation. It returns **0** on success and **2** on cancellation or denial; it prints the created UUID, but no password or token.
+
+For each MongoDB database, `admin_bootstrap` receives a permanent `_id = "initial-admin"` reservation with journal acknowledgement. The command checks for an existing ADMIN, writes the BCrypt credential with journal acknowledgement, and only then persists the ADMIN user document. **It does not use a multi-document transaction.** If a failure happens after the reservation, the reservation intentionally remains consumed even if the account is incomplete. **Never retry blindly, delete the reservation automatically, or reset it to repeat bootstrap**; preserve evidence and perform an explicit, backup-aware manual recovery review. The current implementation does not provide a recovery command.
+
+**Validation status:** the default Quarkus API package and separate admin fast-jar were both built, with no directory overlap. An isolated MongoDB 8.0 + Java 21 E2E verified initial ADMIN creation, BCrypt cost 12, second-attempt denial with unchanged documents, real `POST /auth/login` (200), RS256 signature/claims, ADMIN access (200), missing token (401), wrong password (401), and guarded cleanup of the disposable database. The administrative command has **not** been deployed to a real production environment; operational controls and production rollout require separate review.
 
 ### Production login and JWT key configuration
 
@@ -249,7 +277,7 @@ JUnit 5 tests cover the `LoginUseCase` directly, without HTTP, CDI, Docker, or a
 .\gradlew.bat clean check --console=plain
 ```
 
-**Validated original baseline: 4 unit tests passing.** Additional tests cover persisted credential verification, redaction, login orchestration, RS256 token issuance, external-key loading, and REST response mapping. The **current database-independent `clean check` passes 119/119 tests**, with no failures, errors, or skips.
+**Validated original baseline: 4 unit tests passing.** Additional tests cover persisted credential verification, redaction, login orchestration, RS256 token issuance, external-key loading, and REST response mapping. The **phase 2.14 database-independent `clean check` passes 150/150 tests**, with no failures, errors, or skips.
 
 ### API & Integration Tests
 
@@ -261,17 +289,17 @@ A separate **5-test RS256 JWT HTTP suite** (`UserResourceJwtTest`) sends actual 
 .\gradlew.bat test --tests "*UserResourceJwtTest" --console=plain
 ```
 
-**Validated original baseline: 4 HTTP tests passing; 8/8 baseline overall.** These are historical milestones. The current standard suite contains **119 tests**; `test` / `check` exclude tagged MongoDB integration tests and require no local Docker or database.
+**Validated original baseline: 4 HTTP tests passing; 8/8 baseline overall.** These are historical milestones. The phase 2.14 standard suite contains **150 tests**; `test` / `check` exclude tagged MongoDB integration tests and require no local Docker or database.
 
 ### Production HTTP end-to-end smoke test (separate from JUnit)
 
 An isolated **MongoDB 8.0.32 + Java 21 JVM** run validated the production resource with a temporary database named `api_quarkus_it_auth_*`, matching generated RSA PEM files and network-local HTTP. It checked ADMIN-authorized user creation and initial credential provisioning (201/204), duplicate provisioning (409), persisted USER login (200), RS256 signature and claims, USER rejection on an ADMIN route (403), ADMIN acceptance (200), missing token (401), wrong password / unknown user (401), and invalid e-mail (400).
 
-The ADMIN Bearer token used for setup was **generated by the test**, not obtained through an ADMIN credential login. The database, generated keys, and test staging files were cleaned up. This test was **not** added to Gradle's default `check` task and does not certify managed key rotation, first-ADMIN bootstrap, or a public deployment.
+In the earlier phase 2.13 E2E, the ADMIN Bearer token used for setup was generated by the test, not obtained through an ADMIN credential login. The later phase 2.14 bootstrap E2E independently verified **persisted ADMIN login** and ADMIN JWT authorization with a disposable MongoDB database. These tests are **not** part of Gradle's default `check` task and do not certify managed key rotation or a public deployment. Test databases, generated keys, and staging files were cleaned up as applicable.
 
 ### MongoDB Integration Tests
 
-The credential repository adds four MongoDB integration tests covering creation, UUID lookup, BCrypt hash preservation, and duplicate-key rejection (`11000`). Migration `V002__user_credentials.js` and its destructive test harness `db/tests/test_v002.sh` were validated against MongoDB 8.0.32 using isolated disposable databases. The original user repository suite contains five additional MongoDB integration tests; both suites remain separate from the default database-independent `clean check`.
+The bootstrap adds **seven additional dedicated MongoDB integration tests** (six reservation/edge-case tests plus one CDI/repository login test). The credential repository adds four MongoDB integration tests covering creation, UUID lookup, BCrypt hash preservation, and duplicate-key rejection (`11000`). Migration `V002__user_credentials.js` and its destructive test harness `db/tests/test_v002.sh` were validated against MongoDB 8.0.32 using isolated disposable databases. The original user repository suite contains five additional MongoDB integration tests; both suites remain separate from the default database-independent `clean check`.
 
 The dedicated `mongoIntegrationTest` task was **validated against an isolated MongoDB 8.0 instance** (**5 JUnit tests, 0 failures, 0 errors, 0 skipped**). Coverage includes user creation and retrieval, missing UUID/e-mail lookups returning `null`, normalized e-mail persistence and BSON `_id`, duplicate e-mails rejected by the unique MongoDB index (`11000`), and duplicates after case/whitespace normalization. Tests clean up only the documents they create. Database names must start with `api_quarkus_it_`; use restricted credentials and an isolated environment.
 
@@ -286,7 +314,7 @@ User e-mails are normalized (trim + `Locale.ROOT` lowercase). The migration `db/
 
 ### Coverage & Quality Gates
 
-The intended toolchain is **Detekt** (required for Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), and a coverage reporter (JaCoCo or Kover, to be selected). The database-independent Gradle `check` and the explicit five-test MongoDB integration suite have passed; scanner and coverage integration is pending.
+The intended toolchain is **Detekt** (required for Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), and a coverage reporter (JaCoCo or Kover, to be selected). The database-independent Gradle `check`, bootstrap's seven-test MongoDB integration suite, and earlier repository integration suites have passed; scanner and coverage integration is pending.
 
 Quality policy:
 
@@ -407,4 +435,4 @@ Compilation and scanning must run on **build runners**, not production runtime n
 
 ---
 
-This repository is a reusable backend foundation. The users REST API, persisted production login, external-key RS256 issuance/verification, **119 standard tests**, and isolated MongoDB HTTP E2E are validated. The earlier ARM64 Native Image smoke test remains a foundation milestone; native rebuild with the new login, native x86-64 delivery, managed secrets/rotation, automated security gates, and release/deploy automation remain future work.
+This repository is a reusable backend foundation. The users REST API, persisted production login, external-key RS256 issuance/verification, **150 standard tests**, and isolated MongoDB HTTP E2E are validated. The earlier ARM64 Native Image smoke test remains a foundation milestone; native rebuild with the new login, native x86-64 delivery, managed secrets/rotation, automated security gates, and release/deploy automation remain future work.
