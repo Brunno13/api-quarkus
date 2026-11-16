@@ -2,7 +2,7 @@
 
 Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-> **Current stage (November 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**. The ADMIN-protected users API, BCrypt (cost 12) credential provisioning, MongoDB repositories, and migrations V001/V002 are implemented. Production `POST /auth/login` verifies persisted credentials and issues RS256 Bearer tokens; the `dev`/`test` endpoint remains an isolated mock. A **one-time, interactive first-ADMIN bootstrap command**, packaged separately from the API and requiring an HTTP-disabled `prod` runtime, is implemented and validated on disposable MongoDB 8.0 data. **150 database-independent tests and seven dedicated MongoDB bootstrap integration tests passed**; a full operational E2E then confirmed persisted ADMIN login, JWT signature/claims, denial of a second bootstrap, and audited cleanup. The prior ARM64 Native Image smoke tests remain valid for the foundation, but Native Image has **not** been rebuilt with the latest authentication features. Managed key rotation, recovery/refresh/revocation, CI security gates, and production deployment remain pending.
+> **Current stage (November 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**. The ADMIN-protected users API, BCrypt (cost 12), MongoDB repositories, migrations V001/V002, and one-time first-ADMIN bootstrap are implemented. Production `POST /auth/login` verifies persisted credentials, issues RS256 Bearer tokens, and now enforces **MongoDB-backed fixed-window rate limiting** by normalized identity and network origin (`429` with `Retry-After`); the `dev`/`test` mock remains separate. The phase 2.14 baseline passed **150 standard tests** and **seven dedicated MongoDB bootstrap integration tests**. On **2026-11-16**, the phase 2.15 `clean check` and `quarkusBuild` passed, as did separate private-network HTTP E2E tests for login, JWT/RBAC, `401`/`429`, HMAC/TTL counters and audited deletion of both disposable databases. The latest rate-limit MongoDB JUnit integration suite is separate from the default `check`. The older ARM64 Native Image smoke tests remain valid for the foundation, but Native Image has **not** been rebuilt with the latest authentication features. Managed key rotation, recovery/refresh/revocation, CI security gates, and production deployment remain pending.
 
 ---
 
@@ -18,6 +18,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 - **User Administration API:** `GET /users/{id}` and `POST /users` with `ADMIN` authorization, use-case isolation, input validation, and HTTP 200/201/400/401/403/404/409 contracts.
 - **Development Bootstrap:** Local Quarkus dev mode and current unit/API tests run without requiring Docker or a database.
 - **Authentication:** Profile-limited mock (`dev`/`test`); persisted MongoDB + BCrypt login in `prod`; RS256 JWT issuance/verification with matching external RSA keys, bounded access-token lifetime, and RBAC. Key rotation, refresh, revocation, and session controls remain planned.
+- **Production Login Rate Limiting:** Shared MongoDB fixed-window quotas per normalized e-mail and network origin, HMAC-SHA256 pseudonymous keys, TTL cleanup, fail-closed admission and generic HTTP `429` / `Retry-After`.
 - **Quality-First Direction:** Database-independent `gradle check` and an explicitly invoked MongoDB integration test; Detekt, coverage, CPD, Gitleaks, Opengrep, and Trivy remain planned gates.
 - **Portable Delivery:** Validated Native Image for `linux/arm64` in a JVM-free OCI runtime. Automated Woodpecker delivery and native `linux/amd64` builds are planned for later phases.
 
@@ -27,6 +28,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 
 ### ✅ Completed (validated checkpoints)
 
+- [x] **Phase 2.15 — production login rate limiting:** admission before BCrypt/JWT, configurable independent identity/origin quotas, shared atomic MongoDB counters with a TTL index and externally supplied HMAC-SHA256 key, generic `429` with `Retry-After`, and fail-closed store failures. Private Docker/MongoDB HTTP E2E validated both negative attempts and a real bootstrapped ADMIN login (200), JWT RS256 and RBAC, invalid password (401), identity/origin blocking (429), HMAC/TTL counter shape and audited cleanup of both disposable databases. `clean check`, `quarkusBuild` and whitespace validation passed on **2026-11-16**; tagged MongoDB JUnit tests remain a separate task.
 - [x] Implemented and validated a one-time first-ADMIN CLI: explicit database confirmation, hidden password input, `prod` profile, HTTP-disabled command-mode artifact, and permanent MongoDB `_id` reservation with journal-acknowledged credential storage. **150/150** standard tests and **7/7** dedicated MongoDB bootstrap integration tests passed. Separate disposable-container E2E validated creation of the ADMIN, rejection of a second attempt without data changes, persisted ADMIN login (200), RS256 JWT signature and ADMIN authorization (200), rejected missing token and bad password (401), and audited database cleanup.
 - [x] Implemented real `prod` `POST /auth/login`: normalized e-mail lookup, persisted BCrypt credential verification, RS256 signing (`sub` UUID / `groups` roles), external PKCS#8 private/public PEM matching, CDI startup validation and generic 401 for invalid credentials. `dev`/`test` retain their isolated mock.
 - [x] Validated production login with **119/119** standard tests, a successful `quarkusBuild`, startup smoke tests for valid/missing/mismatched keys, and a disposable MongoDB HTTP E2E run with signed tokens and USER/ADMIN RBAC checks. Test credentials, keys, database, and staging files were cleaned up.
@@ -59,7 +61,8 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 - [ ] Validate repository CRUD through the deployed Native Image and on the physical ARM64 target.
 - [ ] Integrate **Detekt** (required), business coverage, CPD, Gitleaks, Opengrep, Trivy, and architecture checks; establish measured baselines and verify failing paths.
 - [ ] Centralize template identity and introduce repeatable fork configuration (`--check` / `--apply`).
-- [ ] Complete authentication hardening: rate limiting, operational access-token expiry/audience policy, refresh-token rotation, revocation/logout, session controls, and additional negative security tests. Issued tokens already have a configurable bounded TTL.
+- [ ] Complete remaining authentication hardening: operational access-token expiry/audience policy, refresh-token rotation, revocation/logout, session controls, abuse monitoring, and additional negative security tests. Login rate limiting is implemented; issued tokens already have a configurable bounded TTL.
+- [ ] Establish stable rate-limit HMAC secret provisioning/rotation across replicas and explicitly validate trusted-proxy client-IP configuration in the intended deployment topology.
 - [ ] Implement self-hosted Woodpecker pipelines, target-platform OCI image publication, and deploy smoke tests.
 - [ ] Harden readiness, logging, observability, and production configuration.
 - [ ] Add native **Linux x86-64 (`linux/amd64`)** build and runtime validation in the final delivery phases; ARM64 remains the currently validated native target.
@@ -75,8 +78,9 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 | Validation & Docs | Hibernate Validator, SmallRye OpenAPI / Swagger | Configured |
 | Database | **MongoDB 8.0 + Panache Kotlin (Repository pattern)** | Adapter implemented; migration V001 and isolated integration validated |
 | Authentication | Profile-scoped mock, persisted login, first-ADMIN CLI, BCrypt, SmallRye JWT Verify / Build, RBAC | RS256 issuance and external-key startup checks validated; one-time ADMIN bootstrap and persisted ADMIN login E2E PASS; managed key rotation/recovery pending |
+| Login protection | MongoDB fixed-window rate limiting, atomic counters, TTL, HMAC-SHA256, HTTP 429 | Production HTTP negative/positive E2E PASS in isolated MongoDB; operational proxy/key management pending |
 | Observability | SmallRye Health, JSON logging | Basic setup; hardening pending |
-| Testing | JUnit 5, Quarkus Test, REST Assured, test-security | **150/150** database-independent tests PASS; **7/7** bootstrap MongoDB integration tests and isolated production ADMIN E2E PASS |
+| Testing | JUnit 5, Quarkus Test, REST Assured, test-security | Phase 2.14: **150/150** standard tests and **7/7** bootstrap MongoDB tests PASS; phase 2.15: `clean check`, `quarkusBuild` and private HTTP E2E PASS; rate-limit MongoDB JUnit tests excluded from default `check` |
 | Quality & Security | **Detekt required**; PMD CPD, Gitleaks, Opengrep, Trivy, coverage | Tool integration pending; Gradle `check` PASS |
 | Native Image | Mandrel / GraalVM 25; Quarkus UBI9 Micro | Linux ARM64 build and JVM-free container tested; native x86-64 planned |
 | CI/CD & Delivery | Woodpecker CI, Docker / OCI | ARM64 Dockerfile validated; automated CI, publication, deploy pending |
@@ -95,9 +99,9 @@ src/main/kotlin/br/com/brunno/
 │   ├── auth/
 │   │   ├── api/             # Profile-specific login REST resources and DTOs
 │   │   ├── cli/             # Isolated one-time first-ADMIN command entrypoint
-│   │   ├── application/     # Credential verification, login, and bootstrap use cases
+│   │   ├── application/     # Credential verification, login, rate-limit admission, bootstrap
 │   │   ├── domain/          # Credential domain and repository contract
-│   │   └── infrastructure/  # BCrypt, MongoDB credentials, RSA key loading and token issuer
+│   │   └── infrastructure/  # BCrypt, MongoDB credentials/rate limiting, RSA/JWT
 │   └── users/
 │       ├── api/             # ADMIN-protected users and credential provisioning API
 │       ├── application/     # Create and lookup use cases; validation errors
@@ -162,7 +166,7 @@ A centralized, versioned **non-secret identity contract**, together with an idem
 - **Production:** Inject MongoDB connection settings securely at runtime using `MONGODB_URI` and `MONGODB_DATABASE` (the configured property expressions). Disposable MongoDB 8.0.32 HTTP E2E validation passed; real deployment, network restrictions, backup, and secret provisioning have not been validated.
 - **Mock login:** The `dev`/`test` `/auth/login` uses fixed development credentials and returns a non-functional example token. It is excluded from `prod`, where a distinct `/auth/login` resource authenticates persisted credentials and issues RS256 JWTs. The earlier `prod` HTTP 404 result applies only to the pre-2.13 build. **Never treat the mock as real authentication.**
 - **JWT and RBAC:** `quarkus-smallrye-jwt` and `quarkus-smallrye-jwt-build` are installed. RS256 issuer and verifier use externally supplied matching PEM keys in `prod`; startup rejects missing or mismatched private keys. Claims include UUID `sub`, e-mail `upn`, `groups`, `iss`, `iat`, and `exp`. Five original signed-JWT HTTP tests and the production E2E validate verification and role enforcement. Managed key provisioning/rotation remains pending.
-- **Remaining security work:** Managed production-key deployment/rotation, password recovery and policy, rate limiting, refresh/revocation, session handling, CORS/trusted-proxy policy, bootstrap incident-recovery procedure, and production deployment hardening.
+- **Remaining security work:** Managed JWT/HMAC key deployment and rotation, password recovery and policy, refresh/revocation, session handling, CORS/trusted-proxy policy, abuse monitoring, bootstrap incident-recovery procedure, and production deployment hardening.
 - Secrets must come from environment injection or a secret manager, never source control or logs.
 
 ### First ADMIN bootstrap (separate administrative artifact)
@@ -192,7 +196,7 @@ For each MongoDB database, `admin_bootstrap` receives a permanent `_id = "initia
 
 ### Production login and JWT key configuration
 
-The `prod` resource accepts `POST /auth/login` with `email` and `password`, verifies persisted BCrypt credentials, and returns `accessToken`, `tokenType` (`Bearer`), `expiresIn` (seconds), and `user` (`id` as UUID string, `name`, `email`, `roles`). Invalid credentials return **401**, while request validation failures return **400**. No password hash is returned. The `dev`/`test` mock is a separate build-profile resource.
+The `prod` resource accepts `POST /auth/login` with `email` and `password`, reserves rate-limit capacity **before** checking persisted BCrypt credentials or issuing JWTs, and returns `accessToken`, `tokenType` (`Bearer`), `expiresIn` (seconds), and `user` (`id` as UUID string, `name`, `email`, `roles`). Invalid credentials return **401**, exceeded quotas return **429**, and request validation failures return **400**. No password hash is returned. The `dev`/`test` mock is a separate build-profile resource.
 
 | Runtime setting | Source / behavior |
 |---|---|
@@ -221,7 +225,27 @@ Example response shape (illustrative values, not an actual credential):
 }
 ```
 
-Do not log passwords, JWTs, or private key material. Do not expose `prod` publicly without separate deployment security review, request throttling, TLS and operational secret controls.
+Do not log passwords, JWTs, or private key material. Even with login throttling implemented, do not expose `prod` publicly without a separate deployment security review, TLS, correct proxy/IP handling, and operational secret controls.
+
+### Production login rate limiting (phase 2.15)
+
+The production-only `LoginRateLimitAdmissionService` runs before BCrypt verification and JWT signing. A shared MongoDB collection, `login_rate_limit_windows`, tracks **fixed UTC time windows** with atomic per-bucket `findOneAndUpdate` operations. Origin quota is reserved **first**, then the normalized e-mail identity quota; a rejected identity request still consumes its origin attempt. Requests count regardless of valid/invalid password, and counters are shared between application replicas using the same MongoDB database and HMAC key. This limiter is not active in the `dev`/`test` mock or the separate offline first-ADMIN bootstrap command.
+
+| Production property | Environment variable | Default / constraint |
+|---|---|---|
+| `app.auth.rate-limit.hmac-key-base64` | `APP_AUTH_RATE_LIMIT_HMAC_KEY_BASE64` | **Required** for production HTTP login; no default. Standard Base64 encoding of **32–128 random bytes**. |
+| `app.auth.rate-limit.identity.max-attempts` | `APP_AUTH_RATE_LIMIT_IDENTITY_MAX_ATTEMPTS` | `5`; positive integer. |
+| `app.auth.rate-limit.identity.window-seconds` | `APP_AUTH_RATE_LIMIT_IDENTITY_WINDOW_SECONDS` | `300`; range `1–86400`. |
+| `app.auth.rate-limit.origin.max-attempts` | `APP_AUTH_RATE_LIMIT_ORIGIN_MAX_ATTEMPTS` | `30`; positive integer. |
+| `app.auth.rate-limit.origin.window-seconds` | `APP_AUTH_RATE_LIMIT_ORIGIN_WINDOW_SECONDS` | `60`; range `1–86400`. |
+
+The HMAC key is **not** the JWT private key. Generate and provision it through a secret manager or protected runtime environment, never the repository, CLI arguments, test logs or documentation examples containing real values. Keep it **stable across restarts and replicas**: replacing the key creates different counter identifiers and effectively starts a new set of quotas. A deliberate rotation requires an operational plan. A missing or invalid key cannot fall back to an in-memory/unprotected limiter when the production login limiter is resolved.
+
+MongoDB stores only pseudonymous `_id` keys (`v1:<dimension>:<bucket>:<HMAC-SHA256>`), attempt counts and `expireAt`; it does not persist the raw e-mail or IP in the counter identifiers. The TTL index on `expireAt` (`expireAfterSeconds: 0`) permits asynchronous MongoDB cleanup after each fixed window ends; **TTL deletion is not immediate or a guarantee of exact deletion at the boundary**. An over-quota request receives a generic JSON **HTTP 429** response with a positive, numeric `Retry-After` header (seconds remaining in that window); it does not receive a JWT. MongoDB/index/unknown write failures propagate and prevent an unthrottled successful login rather than silently admitting the request.
+
+The origin address comes from the Vert.x request's **direct network peer** (`remoteAddress().hostAddress()`); the login resource does **not** parse user-provided `Forwarded` or `X-Forwarded-For` headers. **Reverse-proxy deployment requires explicit review and configuration of Quarkus trusted-proxy handling**: if every request appears to come from a proxy IP, they will share that origin quota. Do not enable trust in arbitrary forwarding headers to work around this behavior.
+
+**Operational validation (2026-11-16):** isolated Java 21 + MongoDB 8.0 Docker runs, no published ports, validated incorrect/unknown credentials (`401`), identity and shared-origin quotas (`429`), `Retry-After`, forwarded-header spoofing resistance, correct persisted ADMIN login (`200`), BCrypt, JWT RS256 signature/claims, protected endpoint RBAC, HMAC counter shape and TTL index. Both dedicated test databases were removed only after ownership checks, explicit confirmation and verified cleanup. These are **laboratory E2E checks**, not a production deployment or a load/availability assessment. The positive run reused the previously validated **phase 2.14 bootstrap CLI** and the current **phase 2.15 API JVM artifact**; it does not constitute a fresh bootstrap CLI build validation with the phase 2.15 code.
 
 ---
 
@@ -277,7 +301,7 @@ JUnit 5 tests cover the `LoginUseCase` directly, without HTTP, CDI, Docker, or a
 .\gradlew.bat clean check --console=plain
 ```
 
-**Validated original baseline: 4 unit tests passing.** Additional tests cover persisted credential verification, redaction, login orchestration, RS256 token issuance, external-key loading, and REST response mapping. The **phase 2.14 database-independent `clean check` passes 150/150 tests**, with no failures, errors, or skips.
+**Validated original baseline: 4 unit tests passing.** Additional tests cover persisted credential verification, redaction, login orchestration, RS256 token issuance, external-key loading, REST response mapping and rate-limit contracts/settings/admission/HMAC/mapping. The **phase 2.14 database-independent `clean check` passed 150/150 tests**. The expanded **phase 2.15 `clean check` and `quarkusBuild` passed on 2026-11-16**; that console run did not report a per-test count.
 
 ### API & Integration Tests
 
@@ -289,17 +313,17 @@ A separate **5-test RS256 JWT HTTP suite** (`UserResourceJwtTest`) sends actual 
 .\gradlew.bat test --tests "*UserResourceJwtTest" --console=plain
 ```
 
-**Validated original baseline: 4 HTTP tests passing; 8/8 baseline overall.** These are historical milestones. The phase 2.14 standard suite contains **150 tests**; `test` / `check` exclude tagged MongoDB integration tests and require no local Docker or database.
+**Validated original baseline: 4 HTTP tests passing; 8/8 baseline overall.** These are historical milestones. The phase 2.14 standard suite contained **150 tests**. The phase 2.15 standard suite includes new rate-limit unit/profile/mapper tests; `test` / `check` still exclude tagged MongoDB integration tests and require no local Docker or database.
 
 ### Production HTTP end-to-end smoke test (separate from JUnit)
 
 An isolated **MongoDB 8.0.32 + Java 21 JVM** run validated the production resource with a temporary database named `api_quarkus_it_auth_*`, matching generated RSA PEM files and network-local HTTP. It checked ADMIN-authorized user creation and initial credential provisioning (201/204), duplicate provisioning (409), persisted USER login (200), RS256 signature and claims, USER rejection on an ADMIN route (403), ADMIN acceptance (200), missing token (401), wrong password / unknown user (401), and invalid e-mail (400).
 
-In the earlier phase 2.13 E2E, the ADMIN Bearer token used for setup was generated by the test, not obtained through an ADMIN credential login. The later phase 2.14 bootstrap E2E independently verified **persisted ADMIN login** and ADMIN JWT authorization with a disposable MongoDB database. These tests are **not** part of Gradle's default `check` task and do not certify managed key rotation or a public deployment. Test databases, generated keys, and staging files were cleaned up as applicable.
+In the earlier phase 2.13 E2E, the ADMIN Bearer token used for setup was generated by the test, not obtained through an ADMIN credential login. The later phase 2.14 bootstrap E2E independently verified **persisted ADMIN login** and ADMIN JWT authorization with a disposable MongoDB database. In phase 2.15, separate negative and positive private-network E2E runs validated production MongoDB rate limiting, `401`/`429`, `Retry-After`, real ADMIN JWT/RBAC and guarded disposable database cleanup. These runs are **not** part of Gradle's default `check` task and do not certify managed key rotation or a public deployment. Test databases and temporary keys were cleaned up as applicable.
 
 ### MongoDB Integration Tests
 
-The bootstrap adds **seven additional dedicated MongoDB integration tests** (six reservation/edge-case tests plus one CDI/repository login test). The credential repository adds four MongoDB integration tests covering creation, UUID lookup, BCrypt hash preservation, and duplicate-key rejection (`11000`). Migration `V002__user_credentials.js` and its destructive test harness `db/tests/test_v002.sh` were validated against MongoDB 8.0.32 using isolated disposable databases. The original user repository suite contains five additional MongoDB integration tests; both suites remain separate from the default database-independent `clean check`.
+The phase 2.15 rate limiter adds a separate tagged `MongoLoginAttemptRateLimiterIntegrationTest` suite for fixed-window quotas, concurrency, shared counters, TTL and error paths. Its presence in the code does **not** mean it was executed by the latest standard `clean check` or the private HTTP E2E harness. The bootstrap adds **seven additional dedicated MongoDB integration tests** (six reservation/edge-case tests plus one CDI/repository login test). The credential repository adds four MongoDB integration tests covering creation, UUID lookup, BCrypt hash preservation, and duplicate-key rejection (`11000`). Migration `V002__user_credentials.js` and its destructive test harness `db/tests/test_v002.sh` were validated against MongoDB 8.0.32 using isolated disposable databases. The original user repository suite contains five additional MongoDB integration tests; both suites remain separate from the default database-independent `clean check`.
 
 The dedicated `mongoIntegrationTest` task was **validated against an isolated MongoDB 8.0 instance** (**5 JUnit tests, 0 failures, 0 errors, 0 skipped**). Coverage includes user creation and retrieval, missing UUID/e-mail lookups returning `null`, normalized e-mail persistence and BSON `_id`, duplicate e-mails rejected by the unique MongoDB index (`11000`), and duplicates after case/whitespace normalization. Tests clean up only the documents they create. Database names must start with `api_quarkus_it_`; use restricted credentials and an isolated environment.
 
@@ -435,4 +459,4 @@ Compilation and scanning must run on **build runners**, not production runtime n
 
 ---
 
-This repository is a reusable backend foundation. The users REST API, persisted production login, external-key RS256 issuance/verification, **150 standard tests**, and isolated MongoDB HTTP E2E are validated. The earlier ARM64 Native Image smoke test remains a foundation milestone; native rebuild with the new login, native x86-64 delivery, managed secrets/rotation, automated security gates, and release/deploy automation remain future work.
+This repository is a reusable backend foundation. The users REST API, persisted production login, external-key RS256 issuance/verification, and **phase 2.15 MongoDB-backed login rate limiting** passed the latest database-independent build gates and private HTTP E2E checks. The phase 2.14 baseline of **150 standard tests** remains historical; tagged MongoDB JUnit integration tests are separate. The earlier ARM64 Native Image smoke test remains a foundation milestone; native rebuild with updated authentication, native x86-64 delivery, managed secrets/rotation, automated security gates, and release/deploy automation remain future work.
