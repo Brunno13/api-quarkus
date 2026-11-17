@@ -1,4 +1,4 @@
-# ⚡ API Quarkus (Kotlin)
+# ⚡ API Quarkus (Kotlin) 
 
 Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
