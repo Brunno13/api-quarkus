@@ -1,0 +1,21 @@
+# AQK-5: ONLY the already-approved local Gradle quality gate.
+# No Mongo integration DB, publish, release, native build, or deployment.
+labels:
+  platform: linux/amd64
+  role: build-linux
+
+depends_on:
+  - security-wake-x86
+
+when:
+  - event: pull_request
+    branch: main
+  - event: push
+    branch: main
+
+steps:
+  - name: quarkus-quality
+    image: eclipse-temurin:21-jdk
+    pull: false
+    commands:
+      - bash scripts/quality_quarkus.sh

@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:BootstrapFirstAdminCli.kt:BootstrapFirstAdminCli$fun run: Int</ID>
+    <ID>MagicNumber:BcryptPasswordHasher.kt:BcryptPasswordHasher$12</ID>
+    <ID>MagicNumber:BcryptPasswordHasher.kt:BcryptPasswordHasher$72</ID>
+    <ID>MagicNumber:ExternalRsaJwtIssuerFactory.kt:ExternalRsaJwtIssuerFactory$2048</ID>
+    <ID>MagicNumber:LoginRateLimitAdmissionService.kt:LoginRateLimitAdmissionService$64</ID>
+    <ID>MagicNumber:LoginRateLimitExceededExceptionMapper.kt:LoginRateLimitExceededExceptionMapper$429</ID>
+    <ID>MagicNumber:LoginRateLimitPolicy.kt:LoginRateLimitQuota$86_400</ID>
+    <ID>MagicNumber:MongoInitialAdminBootstrapWriteGate.kt:MongoInitialAdminBootstrapWriteGate$11000</ID>
+    <ID>MagicNumber:MongoLoginAttemptRateLimiter.kt:MongoLoginAttemptRateLimiter$64</ID>
+    <ID>MagicNumber:Pkcs8RsaPrivateKeyLoader.kt:Pkcs8RsaPrivateKeyLoader$2048</ID>
+    <ID>MagicNumber:ProductionLoginRateLimitSettings.kt:ProductionLoginRateLimitSettings.Companion$128</ID>
+    <ID>MagicNumber:ProductionLoginRateLimitSettings.kt:ProductionLoginRateLimitSettings.Companion$172</ID>
+    <ID>MagicNumber:ProductionLoginRateLimitSettings.kt:ProductionLoginRateLimitSettings.Companion$32</ID>
+    <ID>MagicNumber:Rs256TokenIssuer.kt:Rs256TokenIssuer$2048</ID>
+    <ID>MagicNumber:Rs256TokenIssuer.kt:Rs256TokenIssuer$3600</ID>
+    <ID>ReturnCount:BootstrapFirstAdminCli.kt:BootstrapFirstAdminCli$fun run: Int</ID>
+    <ID>ThrowsCount:ExternalRsaJwtIssuerFactory.kt:ExternalRsaJwtIssuerFactory$private fun loadPublicKey: RSAPublicKey</ID>
+    <ID>ThrowsCount:Pkcs8RsaPrivateKeyLoader.kt:Pkcs8RsaPrivateKeyLoader$fun load: RSAPrivateKey</ID>
+    <ID>ThrowsCount:ProvisionUserCredentialUseCase.kt:ProvisionUserCredentialUseCase$fun execute</ID>
+    <ID>TooGenericExceptionCaught:BcryptPasswordHasher.kt:BcryptPasswordHasher$exception: RuntimeException</ID>
+  </CurrentIssues>
+</SmellBaseline>
