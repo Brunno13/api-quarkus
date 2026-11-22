@@ -1,4 +1,4 @@
-# AQK-17: Kotlin Opengrep SAST discovery. Not required until promoted.
+# AQK-17: Kotlin Opengrep SAST blocking gate (full tracked source + test coverage).
 when:
   - event: pull_request
     branch: main
@@ -29,7 +29,7 @@ steps:
         chmod 0755 .aqk17-bin/opengrep
         echo 'AQK_17_OPENGREP_BINARY_VERIFIED=PASS'
 
-  - name: opengrep-kotlin-discovery
+  - name: opengrep-kotlin-blocking
     # Debian/glibc is required for the verified Linux-x86 executable.
     image: python:3.13-bookworm
     commands:

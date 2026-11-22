@@ -1,19 +1,19 @@
 #!/bin/sh
-# AQK-17: discovery scan with a synthetic positive control and safe summaries.
-# Fail on scanner errors, invalid rules, missing targets, or missing probe match.
+# AQK-17: blocking scan with a synthetic positive control and safe summaries.
+# Fail on findings, scanner errors, invalid rules, incomplete Kotlin coverage or missing probe.
 set -eu
 
 if [ ! -s .opengrep.yml ] || [ ! -s .aqk17-opengrepignore ] || [ ! -x .aqk17-bin/opengrep ]; then
-  echo 'AQK_17_OPENGREP_DISCOVERY=FAIL (rules, ignore policy or verified binary missing)' >&2
+  echo 'AQK_17_OPENGREP_GATE=FAIL (rules, ignore policy or verified binary missing)' >&2
   exit 1
 fi
 
 if [ ! -d src/main/kotlin ] || [ ! -d src/test/kotlin ]; then
-  echo 'AQK_17_OPENGREP_DISCOVERY=FAIL (Kotlin targets missing)' >&2
+  echo 'AQK_17_OPENGREP_GATE=FAIL (Kotlin targets missing)' >&2
   exit 1
 fi
 
-python3 scripts/ci/aqk17_opengrep_discovery.py --self-test
+python3 scripts/ci/aqk17_opengrep_gate.py --self-test
 umask 077
 report_dir="$(mktemp -d)"
 trap 'rm -rf "$report_dir"' EXIT HUP INT TERM
@@ -32,10 +32,11 @@ if ! ./.aqk17-bin/opengrep scan --config .opengrep.yml --json \
   echo 'AQK_17_OPENGREP_PROBE=FAIL (scanner execution)' >&2
   exit 1
 fi
-python3 scripts/ci/aqk17_opengrep_discovery.py --probe "$report_dir/probe.json"
+python3 scripts/ci/aqk17_opengrep_gate.py --probe "$report_dir/probe.json"
 
-# Preserve the actual exit code: findings alone should not cause scan failure
-# without --error. The original scanner stderr/JSON remain private and ephemeral.
+# Preserve scanner exit codes. The Python gate separately blocks findings even
+# without --error, so safe counts are available without printing source snippets.
+# Original stderr/JSON remain private and ephemeral.
 scan_rc=0
 ./.aqk17-bin/opengrep scan --config .opengrep.yml --json \
   --semgrepignore-filename .aqk17-opengrepignore \
@@ -168,4 +169,4 @@ PY_ISO
 fi
 
 echo 'AQK_17_OPENGREP_SCAN_EXECUTION=PASS'
-python3 scripts/ci/aqk17_opengrep_discovery.py "$report_dir/source.json"
+python3 scripts/ci/aqk17_opengrep_gate.py "$report_dir/source.json"

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""AQK-17: validate Opengrep v2 JSON; safe counts only, no source excerpts.
+"""AQK-17: blocking Kotlin Opengrep SAST gate; sanitized diagnostics only.
 
-Initial discovery does not reject findings. It rejects errors, skipped rules,
-missing Kotlin targets, invalid JSON, and a failed synthetic positive control.
+Reject any finding in the four explicitly maintained SAST rules. Fail closed on
+invalid reports, scanner errors/skipped rules, incomplete tracked-Kotlin coverage,
+and a missing positive-control finding. Never print source snippets or secrets.
 """
 import json
 import subprocess
@@ -87,11 +88,28 @@ def tracked_kotlin_sources() -> set[str]:
         if name.endswith(".kt")
     }
 
+def enforce_findings(findings: int) -> bool:
+    """All configured AQK-17 SAST findings are blocking (no baseline)."""
+    if not isinstance(findings, int) or isinstance(findings, bool) or findings < 0:
+        raise ValueError("invalid findings count")
+    return findings == 0
+
+
 def self_test() -> None:
     ok = {"results": [], "errors": [], "paths": {"scanned": ["src/main/kotlin/Example.kt"]}, "skipped_rules": []}
     assert summarize(ok)[:2] == (1, 0)
     with_finding = {**ok, "results": [{"check_id": PROBE_RULE}]}
     assert summarize(with_finding, probe=True)[1] == 1
+    assert enforce_findings(0)
+    assert not enforce_findings(1)
+    assert not enforce_findings(3)
+    for bad_count in (-1, None, "0", True):
+        try:
+            enforce_findings(bad_count)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid findings count was accepted")
     tracked = {"src/main/kotlin/A.kt", "src/test/kotlin/B.kt"}
     both = {**ok, "paths": {"scanned": ["./src/main/kotlin/A.kt", "src/test/kotlin/B.kt"]}}
     assert verify_coverage(both, tracked) == (1, 1)
@@ -118,7 +136,7 @@ def self_test() -> None:
         except ValueError:
             continue
         raise AssertionError(f"negative selftest {index} unexpectedly passed")
-    print("AQK_17_OPENGREP_DISCOVERY_SELFTEST=PASS")
+    print("AQK_17_OPENGREP_GATE_SELFTEST=PASS")
 
 
 def main() -> int:
@@ -131,7 +149,7 @@ def main() -> int:
     elif len(sys.argv) == 2:
         path = sys.argv[1]
     else:
-        print("AQK_17_OPENGREP_DISCOVERY=FAIL (invalid arguments)", file=sys.stderr)
+        print("AQK_17_OPENGREP_GATE=FAIL (invalid arguments)", file=sys.stderr)
         return 2
     try:
         report = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -139,12 +157,12 @@ def main() -> int:
         if not probe:
             main_count, test_count = verify_coverage(report, tracked_kotlin_sources())
     except (OSError, UnicodeError, ValueError, subprocess.CalledProcessError) as exc:
-        print(f"AQK_17_OPENGREP_DISCOVERY=FAIL ({type(exc).__name__})", file=sys.stderr)
+        print(f"AQK_17_OPENGREP_GATE=FAIL ({type(exc).__name__})", file=sys.stderr)
         return 1
     if probe:
         print("AQK_17_OPENGREP_PROBE=PASS")
         return 0
-    print("===== AQK-17 OPENGREP KOTLIN DISCOVERY =====")
+    print("===== AQK-17 OPENGREP KOTLIN BLOCKING GATE =====")
     print(f"OPENGREP_TRACKED_KOTLIN_FILES={main_count + test_count}")
     print(f"OPENGREP_SCANNED_MAIN_KOTLIN_FILES={main_count}")
     print(f"OPENGREP_SCANNED_TEST_KOTLIN_FILES={test_count}")
@@ -153,9 +171,10 @@ def main() -> int:
     print(f"OPENGREP_FINDINGS_TOTAL={findings}")
     for rule_id in sorted(rule_counts):
         print(f"OPENGREP_RULE_{rule_id.upper().replace('-', '_')}={rule_counts[rule_id]}")
-    print("OPENGREP_POLICY=DISCOVERY_ONLY")
-    print("AQK_17_OPENGREP_DISCOVERY=PASS")
-    return 0
+    print("OPENGREP_POLICY=BLOCK_ANY_FINDING")
+    allowed = enforce_findings(findings)
+    print("AQK_17_OPENGREP_GATE=" + ("PASS" if allowed else "FAIL"))
+    return 0 if allowed else 1
 
 
 if __name__ == "__main__":
