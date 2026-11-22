@@ -166,3 +166,10 @@ tasks.register<Test>("mongoIntegrationTest") {
 
     outputs.upToDateWhen { false }
 }
+
+// AQK-17: lock application and test dependencies for security scanning.
+configurations.configureEach {
+    if (name == "runtimeClasspath" || name == "testRuntimeClasspath") {
+        resolutionStrategy.activateDependencyLocking()
+    }
+}

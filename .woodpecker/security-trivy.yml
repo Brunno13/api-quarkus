@@ -1,0 +1,33 @@
+# AQK-17: first-pass Gradle dependency inventory / vulnerability discovery.
+# Do not make this check required until the findings are classified and
+# blocking behavior has been validated.
+when:
+  - event: pull_request
+    branch: main
+  - event: push
+    branch: main
+
+labels:
+  platform: linux/amd64
+  role: build-linux
+
+depends_on:
+  - security-wake-x86
+
+steps:
+  - name: prepare-verified-trivy
+    # Reuse the v0.69.3 image already validated on VM104.
+    image: ghcr.io/aquasecurity/trivy:0.69.3@sha256:7228e304ae0f610a1fad937baa463598cadac0c2ac4027cc68f3a8b997115689
+    commands:
+      - |
+        set -eu
+        mkdir -p .aqk17-bin
+        cp /usr/local/bin/trivy .aqk17-bin/trivy
+        chmod 0755 .aqk17-bin/trivy
+        ./.aqk17-bin/trivy --version
+        echo 'AQK_17_TRIVY_BINARY=PASS'
+
+  - name: trivy-gradle-discovery
+    image: python:3.13-alpine
+    commands:
+      - sh scripts/ci/aqk17_trivy_scan.sh
