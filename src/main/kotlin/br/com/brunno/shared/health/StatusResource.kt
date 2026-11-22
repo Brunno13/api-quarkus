@@ -7,18 +7,16 @@ import jakarta.ws.rs.core.MediaType
 
 @Path("/status")
 class StatusResource {
-
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    fun status(): StatusResponse {
-        return StatusResponse(
+    fun status(): StatusResponse =
+        StatusResponse(
             name = "api-quarkus",
-            status = "UP"
+            status = "UP",
         )
-    }
 }
 
 data class StatusResponse(
     val name: String,
-    val status: String
+    val status: String,
 )

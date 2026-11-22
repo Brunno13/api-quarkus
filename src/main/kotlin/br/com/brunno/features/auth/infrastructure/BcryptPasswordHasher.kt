@@ -9,7 +9,6 @@ import java.security.spec.InvalidKeySpecException
 
 @ApplicationScoped
 class BcryptPasswordHasher : PasswordHasher {
-
     override fun hash(rawPassword: String): String {
         require(isValidInput(rawPassword)) {
             "Password must contain between 1 and 72 UTF-8 bytes and must not be blank"
@@ -20,7 +19,7 @@ class BcryptPasswordHasher : PasswordHasher {
 
     override fun verify(
         rawPassword: String,
-        encodedHash: String
+        encodedHash: String,
     ): Boolean {
         if (!isValidInput(rawPassword)) {
             return false
@@ -33,7 +32,9 @@ class BcryptPasswordHasher : PasswordHasher {
         } catch (exception: RuntimeException) {
             when (exception.cause) {
                 is InvalidKeySpecException,
-                is InvalidKeyException -> false
+                is InvalidKeyException,
+                -> false
+
                 else -> throw exception
             }
         }
@@ -41,5 +42,5 @@ class BcryptPasswordHasher : PasswordHasher {
 
     private fun isValidInput(password: String): Boolean =
         password.isNotBlank() &&
-                password.toByteArray(StandardCharsets.UTF_8).size <= 72
+            password.toByteArray(StandardCharsets.UTF_8).size <= 72
 }

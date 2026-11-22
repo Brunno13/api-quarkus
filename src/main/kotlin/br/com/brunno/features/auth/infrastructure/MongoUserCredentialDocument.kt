@@ -5,7 +5,6 @@ import org.bson.codecs.pojo.annotations.BsonId
 
 @MongoEntity(collection = "user_credentials")
 class MongoUserCredentialDocument {
-
     @field:BsonId
     var id: String? = null
 

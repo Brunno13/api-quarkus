@@ -12,13 +12,13 @@ import br.com.brunno.features.users.domain.User
  */
 class BootstrapFirstAdminCli(
     private val createAdmin: (BootstrapFirstAdminCommand) -> User,
-    private val terminal: BootstrapAdminTerminal
+    private val terminal: BootstrapAdminTerminal,
 ) {
     fun run(
         args: Array<out String>,
         activeProfile: String,
         databaseName: String,
-        httpHostEnabled: Boolean
+        httpHostEnabled: Boolean,
     ): Int {
         if (args.isNotEmpty()) {
             return fail("Arguments are not accepted. Enter all values interactively.")
@@ -42,10 +42,12 @@ class BootstrapFirstAdminCli(
             return fail("Bootstrap cancelled: target database not confirmed.")
         }
 
-        val name = terminal.readLine("Administrator name: ")
-            ?: return fail("Bootstrap cancelled: no administrator name supplied.")
-        val email = terminal.readLine("Administrator email: ")
-            ?: return fail("Bootstrap cancelled: no administrator email supplied.")
+        val name =
+            terminal.readLine("Administrator name: ")
+                ?: return fail("Bootstrap cancelled: no administrator name supplied.")
+        val email =
+            terminal.readLine("Administrator email: ")
+                ?: return fail("Bootstrap cancelled: no administrator email supplied.")
 
         var password: CharArray? = null
         var repeatedPassword: CharArray? = null

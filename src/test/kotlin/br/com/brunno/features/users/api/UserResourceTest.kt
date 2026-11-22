@@ -1,20 +1,19 @@
 package br.com.brunno.features.users.api
 
-import br.com.brunno.support.UsersApiTestProfile
 import br.com.brunno.support.TestUserRepository
+import br.com.brunno.support.UsersApiTestProfile
 import io.quarkus.test.junit.QuarkusTest
 import io.quarkus.test.junit.TestProfile
 import io.quarkus.test.security.TestSecurity
 import io.restassured.RestAssured.given
-import org.junit.jupiter.api.Test
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.notNullValue
+import org.junit.jupiter.api.Test
 import java.util.UUID
 
 @QuarkusTest
 @TestProfile(UsersApiTestProfile::class)
 class UserResourceTest {
-
     @Test
     fun `unauthenticated request returns HTTP 401`() {
         val id = UUID.randomUUID()
@@ -29,7 +28,7 @@ class UserResourceTest {
     @Test
     @TestSecurity(
         user = "regular-user",
-        roles = ["USER"]
+        roles = ["USER"],
     )
     fun `user without ADMIN role returns HTTP 403`() {
         val id = UUID.randomUUID()
@@ -44,7 +43,7 @@ class UserResourceTest {
     @Test
     @TestSecurity(
         user = "admin",
-        roles = ["ADMIN"]
+        roles = ["ADMIN"],
     )
     fun `admin retrieves existing user with HTTP 200`() {
         val user = TestUserRepository.EXISTING_USER
@@ -55,21 +54,25 @@ class UserResourceTest {
             .then()
             .statusCode(200)
             .body(
-                "id", equalTo(user.id.toString()),
-                "name", equalTo(user.name),
-                "email", equalTo(user.email)
+                "id",
+                equalTo(user.id.toString()),
+                "name",
+                equalTo(user.name),
+                "email",
+                equalTo(user.email),
             )
     }
 
     @Test
     @TestSecurity(
         user = "admin",
-        roles = ["ADMIN"]
+        roles = ["ADMIN"],
     )
     fun `admin receives HTTP 404 when user does not exist`() {
-        val unknownId = UUID.fromString(
-            "00000000-0000-0000-0000-000000000002"
-        )
+        val unknownId =
+            UUID.fromString(
+                "00000000-0000-0000-0000-000000000002",
+            )
 
         given()
             .`when`()
@@ -88,9 +91,8 @@ class UserResourceTest {
                     "name": "Example User",
                     "email": "person@example.com"
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/users")
             .then()
             .statusCode(401)
@@ -99,7 +101,7 @@ class UserResourceTest {
     @Test
     @TestSecurity(
         user = "regular-user",
-        roles = ["USER"]
+        roles = ["USER"],
     )
     fun `user without ADMIN role cannot create users`() {
         given()
@@ -110,9 +112,8 @@ class UserResourceTest {
                     "name": "Example User",
                     "email": "person@example.com"
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/users")
             .then()
             .statusCode(403)
@@ -121,7 +122,7 @@ class UserResourceTest {
     @Test
     @TestSecurity(
         user = "admin",
-        roles = ["ADMIN"]
+        roles = ["ADMIN"],
     )
     fun `admin creates user with HTTP 201`() {
         given()
@@ -132,23 +133,25 @@ class UserResourceTest {
                     "name": "  Example User  ",
                     "email": "  PERSON@EXAMPLE.COM  "
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/users")
             .then()
             .statusCode(201)
             .body(
-                "id", notNullValue(),
-                "name", equalTo("Example User"),
-                "email", equalTo("person@example.com")
+                "id",
+                notNullValue(),
+                "name",
+                equalTo("Example User"),
+                "email",
+                equalTo("person@example.com"),
             )
     }
 
     @Test
     @TestSecurity(
         user = "admin",
-        roles = ["ADMIN"]
+        roles = ["ADMIN"],
     )
     fun `blank user name returns HTTP 400`() {
         given()
@@ -159,9 +162,8 @@ class UserResourceTest {
                     "name": "   ",
                     "email": "person@example.com"
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/users")
             .then()
             .statusCode(400)
@@ -170,7 +172,7 @@ class UserResourceTest {
     @Test
     @TestSecurity(
         user = "admin",
-        roles = ["ADMIN"]
+        roles = ["ADMIN"],
     )
     fun `blank user email returns HTTP 400`() {
         given()
@@ -181,9 +183,8 @@ class UserResourceTest {
                     "name": "Example User",
                     "email": "   "
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/users")
             .then()
             .statusCode(400)
@@ -192,7 +193,7 @@ class UserResourceTest {
     @Test
     @TestSecurity(
         user = "admin",
-        roles = ["ADMIN"]
+        roles = ["ADMIN"],
     )
     fun `malformed user email returns HTTP 400`() {
         given()
@@ -203,23 +204,25 @@ class UserResourceTest {
                     "name": "Example User",
                     "email": "invalid-email"
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/users")
             .then()
             .statusCode(400)
             .body(
-                "title", equalTo("Bad Request"),
-                "status", equalTo(400),
-                "detail", equalTo("User email has an invalid format")
+                "title",
+                equalTo("Bad Request"),
+                "status",
+                equalTo(400),
+                "detail",
+                equalTo("User email has an invalid format"),
             )
     }
 
     @Test
     @TestSecurity(
         user = "admin",
-        roles = ["ADMIN"]
+        roles = ["ADMIN"],
     )
     fun `duplicate user email returns HTTP 409`() {
         given()
@@ -230,16 +233,18 @@ class UserResourceTest {
                     "name": "Another User",
                     "email": "existing@example.com"
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/users")
             .then()
             .statusCode(409)
             .body(
-                "title", equalTo("Conflict"),
-                "status", equalTo(409),
-                "detail", equalTo("User email already exists")
+                "title",
+                equalTo("Conflict"),
+                "status",
+                equalTo(409),
+                "detail",
+                equalTo("User email already exists"),
             )
     }
 }

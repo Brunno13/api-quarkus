@@ -7,18 +7,16 @@ import jakarta.ws.rs.ext.ExceptionMapper
 import jakarta.ws.rs.ext.Provider
 
 @Provider
-class UserCredentialAlreadyExistsExceptionMapper :
-    ExceptionMapper<UserCredentialAlreadyExistsException> {
-
+class UserCredentialAlreadyExistsExceptionMapper : ExceptionMapper<UserCredentialAlreadyExistsException> {
     override fun toResponse(exception: UserCredentialAlreadyExistsException): Response =
-        Response.status(Response.Status.CONFLICT)
+        Response
+            .status(Response.Status.CONFLICT)
             .type(MediaType.APPLICATION_JSON)
             .entity(
                 ApiErrorResponse(
                     title = "Conflict",
                     status = 409,
-                    detail = "Credentials already exist for this user"
-                )
-            )
-            .build()
+                    detail = "Credentials already exist for this user",
+                ),
+            ).build()
 }

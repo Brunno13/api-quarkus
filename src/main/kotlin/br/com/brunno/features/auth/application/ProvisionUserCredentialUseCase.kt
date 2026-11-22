@@ -11,15 +11,17 @@ import java.util.UUID
 @ApplicationScoped
 @IfBuildProperty(
     name = "app.persistence.mongodb.enabled",
-    stringValue = "true"
+    stringValue = "true",
 )
 class ProvisionUserCredentialUseCase(
     private val userRepository: UserRepository,
     private val credentialRepository: UserCredentialRepository,
-    private val passwordHasher: PasswordHasher
+    private val passwordHasher: PasswordHasher,
 ) {
-
-    fun execute(userId: UUID, rawPassword: String) {
+    fun execute(
+        userId: UUID,
+        rawPassword: String,
+    ) {
         if (userRepository.findById(userId) == null) {
             throw UserNotFoundForCredentialProvisioningException()
         }
@@ -28,11 +30,12 @@ class ProvisionUserCredentialUseCase(
             throw UserCredentialAlreadyExistsException()
         }
 
-        val passwordHash = try {
-            passwordHasher.hash(rawPassword)
-        } catch (_: IllegalArgumentException) {
-            throw InvalidInitialPasswordException()
-        }
+        val passwordHash =
+            try {
+                passwordHasher.hash(rawPassword)
+            } catch (_: IllegalArgumentException) {
+                throw InvalidInitialPasswordException()
+            }
 
         credentialRepository.create(UserCredential(userId, passwordHash))
     }

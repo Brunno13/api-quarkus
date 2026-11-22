@@ -17,9 +17,13 @@ class ProductionLoginRateLimitSettingsTest {
         identityMax: Int = 5,
         identityWindow: Long = 300,
         originMax: Int = 30,
-        originWindow: Long = 60
+        originWindow: Long = 60,
     ) = ProductionLoginRateLimitSettings.parse(
-        key, identityMax, identityWindow, originMax, originWindow
+        key,
+        identityMax,
+        identityWindow,
+        originMax,
+        originWindow,
     )
 
     @Test
@@ -34,9 +38,10 @@ class ProductionLoginRateLimitSettingsTest {
 
     @Test
     fun `missing secret fails closed`() {
-        val failure = assertThrows(IllegalArgumentException::class.java) {
-            parse(key = null)
-        }
+        val failure =
+            assertThrows(IllegalArgumentException::class.java) {
+                parse(key = null)
+            }
         assertEquals("Login rate-limit HMAC key is not configured", failure.message)
     }
 
@@ -48,9 +53,10 @@ class ProductionLoginRateLimitSettingsTest {
     @Test
     fun `malformed base64 secret fails without echoing its contents`() {
         val invalid = "SENSITIVE_NOT_BASE64!"
-        val failure = assertThrows(IllegalArgumentException::class.java) {
-            parse(key = invalid)
-        }
+        val failure =
+            assertThrows(IllegalArgumentException::class.java) {
+                parse(key = invalid)
+            }
         assertEquals("Login rate-limit HMAC key encoding is invalid", failure.message)
         assertFalse(failure.toString().contains(invalid))
     }

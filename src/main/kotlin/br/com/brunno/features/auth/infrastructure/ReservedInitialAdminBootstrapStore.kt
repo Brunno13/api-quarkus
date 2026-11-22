@@ -17,10 +17,12 @@ import jakarta.enterprise.context.ApplicationScoped
 @IfBuildProperty(name = "app.persistence.mongodb.enabled", stringValue = "true")
 class ReservedInitialAdminBootstrapStore(
     private val gate: InitialAdminBootstrapWriteGate,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
 ) : InitialAdminBootstrapStore {
-
-    override fun createFirstAdmin(user: User, credential: UserCredential): User {
+    override fun createFirstAdmin(
+        user: User,
+        credential: UserCredential,
+    ): User {
         require(user.roles == setOf(UserRole.ADMIN)) {
             "Initial administrator must have only the ADMIN role"
         }

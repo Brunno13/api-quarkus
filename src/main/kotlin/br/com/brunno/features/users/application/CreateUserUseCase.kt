@@ -11,12 +11,11 @@ import java.util.UUID
 @ApplicationScoped
 @IfBuildProperty(
     name = "app.persistence.mongodb.enabled",
-    stringValue = "true"
+    stringValue = "true",
 )
 class CreateUserUseCase(
-    private val repository: UserRepository
+    private val repository: UserRepository,
 ) {
-
     fun execute(command: CreateUserCommand): User {
         val name = command.name.trim()
         val email = UserEmail.normalize(command.email)
@@ -33,12 +32,13 @@ class CreateUserUseCase(
             throw InvalidUserEmailFormatException()
         }
 
-        val user = User(
-            id = UUID.randomUUID(),
-            name = name,
-            email = email,
-            roles = setOf(UserRole.USER)
-        )
+        val user =
+            User(
+                id = UUID.randomUUID(),
+                name = name,
+                email = email,
+                roles = setOf(UserRole.USER),
+            )
 
         return repository.create(user)
     }

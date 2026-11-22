@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class ProvisionUserCredentialUseCaseTest {
-
     private val userId = UUID.randomUUID()
 
     @Test
@@ -37,11 +36,12 @@ class ProvisionUserCredentialUseCaseTest {
         val hasher = FakePasswordHasher()
         val useCase = useCase(null, credentials, hasher)
 
-        val error = assertThrows(
-            UserNotFoundForCredentialProvisioningException::class.java
-        ) {
-            useCase.execute(userId, "valid test password")
-        }
+        val error =
+            assertThrows(
+                UserNotFoundForCredentialProvisioningException::class.java,
+            ) {
+                useCase.execute(userId, "valid test password")
+            }
 
         assertEquals("User not found", error.message)
         assertEquals(0, credentials.lookups)
@@ -51,17 +51,19 @@ class ProvisionUserCredentialUseCaseTest {
 
     @Test
     fun `rejects already provisioned credentials without hashing or writing`() {
-        val credentials = FakeCredentialRepository(
-            existing = UserCredential(userId, "existing-hash-only")
-        )
+        val credentials =
+            FakeCredentialRepository(
+                existing = UserCredential(userId, "existing-hash-only"),
+            )
         val hasher = FakePasswordHasher()
         val useCase = useCase(user(), credentials, hasher)
 
-        val error = assertThrows(
-            UserCredentialAlreadyExistsException::class.java
-        ) {
-            useCase.execute(userId, "valid test password")
-        }
+        val error =
+            assertThrows(
+                UserCredentialAlreadyExistsException::class.java,
+            ) {
+                useCase.execute(userId, "valid test password")
+            }
 
         assertEquals("Credentials already exist for this user", error.message)
         assertNull(error.cause)
@@ -73,14 +75,16 @@ class ProvisionUserCredentialUseCaseTest {
     @Test
     fun `does not write when password validation fails`() {
         val credentials = FakeCredentialRepository()
-        val hasher = FakePasswordHasher().apply {
-            hashFailure = IllegalArgumentException("Invalid password")
-        }
+        val hasher =
+            FakePasswordHasher().apply {
+                hashFailure = IllegalArgumentException("Invalid password")
+            }
         val useCase = useCase(user(), credentials, hasher)
 
-        val error = assertThrows(InvalidInitialPasswordException::class.java) {
-            useCase.execute(userId, " ")
-        }
+        val error =
+            assertThrows(InvalidInitialPasswordException::class.java) {
+                useCase.execute(userId, " ")
+            }
 
         assertEquals("Initial password is invalid", error.message)
         assertNull(error.cause)
@@ -95,11 +99,12 @@ class ProvisionUserCredentialUseCaseTest {
         val credentials = FakeCredentialRepository(createFailure = duplicate)
         val useCase = useCase(user(), credentials, FakePasswordHasher())
 
-        val error = assertThrows(
-            UserCredentialAlreadyExistsException::class.java
-        ) {
-            useCase.execute(userId, "valid test password")
-        }
+        val error =
+            assertThrows(
+                UserCredentialAlreadyExistsException::class.java,
+            ) {
+                useCase.execute(userId, "valid test password")
+            }
 
         assertSame(duplicate, error)
         assertSame(cause, error.cause)
@@ -107,34 +112,34 @@ class ProvisionUserCredentialUseCaseTest {
         assertNull(credentials.created)
     }
 
-    private fun user(): User = User(
-        id = userId,
-        name = "Example User",
-        email = "person@example.com"
-    )
+    private fun user(): User =
+        User(
+            id = userId,
+            name = "Example User",
+            email = "person@example.com",
+        )
 
     private fun useCase(
         user: User?,
         credentials: FakeCredentialRepository,
-        hasher: FakePasswordHasher
-    ): ProvisionUserCredentialUseCase = ProvisionUserCredentialUseCase(
-        userRepository = object : UserRepository {
-            override fun findById(id: UUID): User? =
-                user?.takeIf { it.id == id }
+        hasher: FakePasswordHasher,
+    ): ProvisionUserCredentialUseCase =
+        ProvisionUserCredentialUseCase(
+            userRepository =
+                object : UserRepository {
+                    override fun findById(id: UUID): User? = user?.takeIf { it.id == id }
 
-            override fun findByEmail(email: String): User? =
-                throw AssertionError("Unexpected findByEmail call")
+                    override fun findByEmail(email: String): User? = throw AssertionError("Unexpected findByEmail call")
 
-            override fun create(user: User): User =
-                throw AssertionError("Unexpected user creation")
-        },
-        credentialRepository = credentials,
-        passwordHasher = hasher
-    )
+                    override fun create(user: User): User = throw AssertionError("Unexpected user creation")
+                },
+            credentialRepository = credentials,
+            passwordHasher = hasher,
+        )
 
     private class FakeCredentialRepository(
         private val existing: UserCredential? = null,
-        private val createFailure: RuntimeException? = null
+        private val createFailure: RuntimeException? = null,
     ) : UserCredentialRepository {
         var lookups = 0
         var createAttempts = 0
@@ -163,7 +168,9 @@ class ProvisionUserCredentialUseCaseTest {
             return "test-hash-only"
         }
 
-        override fun verify(rawPassword: String, encodedHash: String): Boolean =
-            throw AssertionError("Unexpected password verification")
+        override fun verify(
+            rawPassword: String,
+            encodedHash: String,
+        ): Boolean = throw AssertionError("Unexpected password verification")
     }
 }

@@ -7,22 +7,16 @@ import jakarta.ws.rs.ext.ExceptionMapper
 import jakarta.ws.rs.ext.Provider
 
 @Provider
-class UserEmailAlreadyExistsExceptionMapper :
-    ExceptionMapper<UserEmailAlreadyExistsException> {
-
-    override fun toResponse(
-        exception: UserEmailAlreadyExistsException
-    ): Response {
-        return Response
+class UserEmailAlreadyExistsExceptionMapper : ExceptionMapper<UserEmailAlreadyExistsException> {
+    override fun toResponse(exception: UserEmailAlreadyExistsException): Response =
+        Response
             .status(Response.Status.CONFLICT)
             .type(MediaType.APPLICATION_JSON)
             .entity(
                 ApiErrorResponse(
                     title = "Conflict",
                     status = 409,
-                    detail = exception.message ?: "User email already exists"
-                )
-            )
-            .build()
-    }
+                    detail = exception.message ?: "User email already exists",
+                ),
+            ).build()
 }

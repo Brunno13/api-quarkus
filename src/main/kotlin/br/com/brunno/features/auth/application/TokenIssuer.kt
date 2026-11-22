@@ -9,13 +9,12 @@ interface TokenIssuer {
 
 class IssuedAccessToken(
     val accessToken: String,
-    val expiresInSeconds: Long
+    val expiresInSeconds: Long,
 ) {
     init {
         require(accessToken.isNotBlank()) { "Access token must not be blank" }
         require(expiresInSeconds > 0) { "Access token lifetime must be positive" }
     }
 
-    override fun toString(): String =
-        "IssuedAccessToken(accessToken=[REDACTED], expiresInSeconds=$expiresInSeconds)"
+    override fun toString(): String = "IssuedAccessToken(accessToken=[REDACTED], expiresInSeconds=$expiresInSeconds)"
 }

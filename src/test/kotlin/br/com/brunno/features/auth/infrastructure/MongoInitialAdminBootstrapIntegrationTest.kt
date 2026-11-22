@@ -37,7 +37,6 @@ import java.util.concurrent.TimeUnit
  */
 @Tag("mongodb-integration")
 class MongoInitialAdminBootstrapIntegrationTest {
-
     @Test
     fun `first bootstrap persists hashed credential then admin and refuses a second`() =
         withIsolatedDatabase { client, db, dbName ->
@@ -47,11 +46,14 @@ class MongoInitialAdminBootstrapIntegrationTest {
             val password = "isolated-test-password"
             val bootstrap = BootstrapFirstAdminUseCase(store, hasher)
 
-            val admin = bootstrap.execute(
-                BootstrapFirstAdminCommand(
-                    "  First Admin  ", "  ADMIN@Example.Test  ", password
+            val admin =
+                bootstrap.execute(
+                    BootstrapFirstAdminCommand(
+                        "  First Admin  ",
+                        "  ADMIN@Example.Test  ",
+                        password,
+                    ),
                 )
-            )
 
             assertEquals("First Admin", admin.name)
             assertEquals("admin@example.test", admin.email)
@@ -60,8 +62,11 @@ class MongoInitialAdminBootstrapIntegrationTest {
             assertEquals(1L, db.getCollection("users").countDocuments())
             assertEquals(1L, db.getCollection("user_credentials").countDocuments())
 
-            val credential = db.getCollection("user_credentials")
-                .find(Filters.eq("_id", admin.id.toString())).first()
+            val credential =
+                db
+                    .getCollection("user_credentials")
+                    .find(Filters.eq("_id", admin.id.toString()))
+                    .first()
             assertNotNull(credential)
             val hash = requireNotNull(credential).getString("passwordHash")
             assertFalse(hash.contains(password))
@@ -69,7 +74,7 @@ class MongoInitialAdminBootstrapIntegrationTest {
 
             assertThrows(InitialAdminAlreadyConfiguredException::class.java) {
                 bootstrap.execute(
-                    BootstrapFirstAdminCommand("Another Admin", "other@example.test", password)
+                    BootstrapFirstAdminCommand("Another Admin", "other@example.test", password),
                 )
             }
             assertEquals(1L, db.getCollection("users").countDocuments())
@@ -84,8 +89,11 @@ class MongoInitialAdminBootstrapIntegrationTest {
             assertThrows(InitialAdminAlreadyConfiguredException::class.java) {
                 gate.reserveOnce()
             }
-            val reservation = db.getCollection("admin_bootstrap")
-                .find(Filters.eq("_id", "initial-admin")).first()
+            val reservation =
+                db
+                    .getCollection("admin_bootstrap")
+                    .find(Filters.eq("_id", "initial-admin"))
+                    .first()
             assertEquals("consumed", requireNotNull(reservation).getString("state"))
             assertEquals(1L, db.getCollection("admin_bootstrap").countDocuments())
         }
@@ -97,17 +105,20 @@ class MongoInitialAdminBootstrapIntegrationTest {
             val pool = Executors.newFixedThreadPool(6)
             val start = CountDownLatch(1)
             try {
-                val attempts = (1..6).map {
-                    pool.submit(Callable {
-                        check(start.await(10, TimeUnit.SECONDS))
-                        try {
-                            gate.reserveOnce()
-                            true
-                        } catch (_: InitialAdminAlreadyConfiguredException) {
-                            false
-                        }
-                    })
-                }
+                val attempts =
+                    (1..6).map {
+                        pool.submit(
+                            Callable {
+                                check(start.await(10, TimeUnit.SECONDS))
+                                try {
+                                    gate.reserveOnce()
+                                    true
+                                } catch (_: InitialAdminAlreadyConfiguredException) {
+                                    false
+                                }
+                            },
+                        )
+                    }
                 start.countDown()
                 val results = attempts.map { it.get(30, TimeUnit.SECONDS) }
                 assertEquals(1, results.count { it })
@@ -124,7 +135,7 @@ class MongoInitialAdminBootstrapIntegrationTest {
                 Document("_id", UUID.randomUUID().toString())
                     .append("name", "Already Admin")
                     .append("email", "existing@example.test")
-                    .append("roles", listOf("ADMIN"))
+                    .append("roles", listOf("ADMIN")),
             )
             val gate = MongoInitialAdminBootstrapWriteGate(client, dbName)
             val store = ReservedInitialAdminBootstrapStore(gate, MongoBackedUsers(db))
@@ -142,14 +153,15 @@ class MongoInitialAdminBootstrapIntegrationTest {
         withIsolatedDatabase { client, db, dbName ->
             val (user, credential) = candidate()
             db.getCollection("user_credentials").insertOne(
-                Document("_id", user.id.toString()).append("passwordHash", "existing-test-hash")
+                Document("_id", user.id.toString()).append("passwordHash", "existing-test-hash"),
             )
             val gate = MongoInitialAdminBootstrapWriteGate(client, dbName)
             val store = ReservedInitialAdminBootstrapStore(gate, MongoBackedUsers(db))
 
-            val error = assertThrows(MongoException::class.java) {
-                store.createFirstAdmin(user, credential)
-            }
+            val error =
+                assertThrows(MongoException::class.java) {
+                    store.createFirstAdmin(user, credential)
+                }
             assertEquals(11000, error.code)
             assertEquals(1L, db.getCollection("admin_bootstrap").countDocuments())
             assertEquals(0L, db.getCollection("users").countDocuments())
@@ -163,9 +175,11 @@ class MongoInitialAdminBootstrapIntegrationTest {
     fun `failed user write leaves durable credential and consumed reservation`() =
         withIsolatedDatabase { client, db, dbName ->
             val gate = MongoInitialAdminBootstrapWriteGate(client, dbName)
-            val store = ReservedInitialAdminBootstrapStore(
-                gate, MongoBackedUsers(db, failOnCreate = true)
-            )
+            val store =
+                ReservedInitialAdminBootstrapStore(
+                    gate,
+                    MongoBackedUsers(db, failOnCreate = true),
+                )
             val (user, credential) = candidate()
             assertThrows(IllegalStateException::class.java) {
                 store.createFirstAdmin(user, credential)
@@ -185,10 +199,12 @@ class MongoInitialAdminBootstrapIntegrationTest {
     }
 
     private fun withIsolatedDatabase(block: (MongoClient, MongoDatabase, String) -> Unit) {
-        val uri = System.getenv("MONGODB_URI")?.takeIf(String::isNotBlank)
-            ?: error("MONGODB_URI is required for MongoDB integration tests")
-        val baseName = System.getenv("MONGODB_DATABASE")?.takeIf(String::isNotBlank)
-            ?: error("MONGODB_DATABASE is required for MongoDB integration tests")
+        val uri =
+            System.getenv("MONGODB_URI")?.takeIf(String::isNotBlank)
+                ?: error("MONGODB_URI is required for MongoDB integration tests")
+        val baseName =
+            System.getenv("MONGODB_DATABASE")?.takeIf(String::isNotBlank)
+                ?: error("MONGODB_DATABASE is required for MongoDB integration tests")
         require(baseName.startsWith("api_quarkus_it_")) {
             "Only an api_quarkus_it_ prefixed database is allowed"
         }
@@ -202,13 +218,16 @@ class MongoInitialAdminBootstrapIntegrationTest {
                 "Refusing to use an existing bootstrap integration database"
             }
             db.getCollection(markerCollection).insertOne(
-                Document("_id", "owner").append("nonce", nonce)
+                Document("_id", "owner").append("nonce", nonce),
             )
             try {
                 block(client, db, name)
             } finally {
-                val marker = db.getCollection(markerCollection)
-                    .find(Filters.eq("_id", "owner")).first()
+                val marker =
+                    db
+                        .getCollection(markerCollection)
+                        .find(Filters.eq("_id", "owner"))
+                        .first()
                 check(marker?.getString("nonce") == nonce) {
                     "Refusing to drop a database without its original ownership marker"
                 }
@@ -219,15 +238,21 @@ class MongoInitialAdminBootstrapIntegrationTest {
 
     private class MongoBackedUsers(
         private val database: MongoDatabase,
-        private val failOnCreate: Boolean = false
+        private val failOnCreate: Boolean = false,
     ) : UserRepository {
         override fun findById(id: UUID): User? =
-            database.getCollection("users").find(Filters.eq("_id", id.toString()))
-                .first()?.let(::toUser)
+            database
+                .getCollection("users")
+                .find(Filters.eq("_id", id.toString()))
+                .first()
+                ?.let(::toUser)
 
         override fun findByEmail(email: String): User? =
-            database.getCollection("users").find(Filters.eq("email", email))
-                .first()?.let(::toUser)
+            database
+                .getCollection("users")
+                .find(Filters.eq("email", email))
+                .first()
+                ?.let(::toUser)
 
         override fun create(user: User): User {
             if (failOnCreate) throw IllegalStateException("Simulated user repository failure")
@@ -235,16 +260,17 @@ class MongoInitialAdminBootstrapIntegrationTest {
                 Document("_id", user.id.toString())
                     .append("name", user.name)
                     .append("email", user.email)
-                    .append("roles", user.roles.map { it.name })
+                    .append("roles", user.roles.map { it.name }),
             )
             return user
         }
 
-        private fun toUser(document: Document): User = User(
-            UUID.fromString(document.getString("_id")),
-            document.getString("name"),
-            document.getString("email"),
-            document.getList("roles", String::class.java).map(UserRole::valueOf).toSet()
-        )
+        private fun toUser(document: Document): User =
+            User(
+                UUID.fromString(document.getString("_id")),
+                document.getString("name"),
+                document.getString("email"),
+                document.getList("roles", String::class.java).map(UserRole::valueOf).toSet(),
+            )
     }
 }

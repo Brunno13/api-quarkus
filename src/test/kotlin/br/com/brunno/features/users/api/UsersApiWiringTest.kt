@@ -12,15 +12,15 @@ import java.util.UUID
 @QuarkusTest
 @TestProfile(UsersApiTestProfile::class)
 class UsersApiWiringTest {
-
     @Inject
     lateinit var getUserByIdUseCase: GetUserByIdUseCase
 
     @Test
     fun `resolves user use case without MongoDB`() {
-        val result = getUserByIdUseCase.execute(
-            UUID.randomUUID()
-        )
+        val result =
+            getUserByIdUseCase.execute(
+                UUID.randomUUID(),
+            )
 
         assertNull(result)
     }

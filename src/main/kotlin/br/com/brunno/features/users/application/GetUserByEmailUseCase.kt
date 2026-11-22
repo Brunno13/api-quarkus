@@ -9,12 +9,10 @@ import jakarta.enterprise.context.ApplicationScoped
 @ApplicationScoped
 @IfBuildProperty(
     name = "app.persistence.mongodb.enabled",
-    stringValue = "true"
+    stringValue = "true",
 )
 class GetUserByEmailUseCase(
-    private val repository: UserRepository
+    private val repository: UserRepository,
 ) {
-
-    fun execute(email: String): User? =
-        repository.findByEmail(UserEmail.normalize(email))
+    fun execute(email: String): User? = repository.findByEmail(UserEmail.normalize(email))
 }

@@ -18,9 +18,8 @@ class Rs256TokenIssuer(
     private val signingKey: RSAPrivateKey,
     private val issuer: String,
     private val accessTokenTtlSeconds: Long = 900,
-    private val clock: Clock = Clock.systemUTC()
+    private val clock: Clock = Clock.systemUTC(),
 ) : TokenIssuer {
-
     init {
         require(signingKey.modulus.bitLength() >= 2048) {
             "RSA signing key must be at least 2048 bits"
@@ -35,16 +34,18 @@ class Rs256TokenIssuer(
         val issuedAt = clock.instant().epochSecond
         val expiresAt = Math.addExact(issuedAt, accessTokenTtlSeconds)
 
-        val signedToken = Jwt.claims()
-            .issuer(issuer)
-            .subject(user.id.toString())
-            .upn(user.email)
-            .groups(user.roles.map { it.name }.toSet())
-            .claim("iat", issuedAt)
-            .claim("exp", expiresAt)
-            .jws()
-            .algorithm(SignatureAlgorithm.RS256)
-            .sign(signingKey)
+        val signedToken =
+            Jwt
+                .claims()
+                .issuer(issuer)
+                .subject(user.id.toString())
+                .upn(user.email)
+                .groups(user.roles.map { it.name }.toSet())
+                .claim("iat", issuedAt)
+                .claim("exp", expiresAt)
+                .jws()
+                .algorithm(SignatureAlgorithm.RS256)
+                .sign(signingKey)
 
         return IssuedAccessToken(signedToken, accessTokenTtlSeconds)
     }

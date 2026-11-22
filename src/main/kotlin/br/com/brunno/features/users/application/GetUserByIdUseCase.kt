@@ -9,12 +9,10 @@ import java.util.UUID
 @ApplicationScoped
 @IfBuildProperty(
     name = "app.persistence.mongodb.enabled",
-    stringValue = "true"
+    stringValue = "true",
 )
 class GetUserByIdUseCase(
-    private val repository: UserRepository
+    private val repository: UserRepository,
 ) {
-
-    fun execute(id: UUID): User? =
-        repository.findById(id)
+    fun execute(id: UUID): User? = repository.findById(id)
 }

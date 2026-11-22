@@ -15,5 +15,8 @@ import br.com.brunno.features.users.domain.User
  */
 interface InitialAdminBootstrapStore {
     @Throws(InitialAdminAlreadyConfiguredException::class)
-    fun createFirstAdmin(user: User, credential: UserCredential): User
+    fun createFirstAdmin(
+        user: User,
+        credential: UserCredential,
+    ): User
 }

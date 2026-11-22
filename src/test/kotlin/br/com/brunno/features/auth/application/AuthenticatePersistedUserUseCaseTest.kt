@@ -12,13 +12,13 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class AuthenticatePersistedUserUseCaseTest {
-
-    private val user = User(
-        id = UUID.fromString("00000000-0000-0000-0000-000000000123"),
-        name = "Example User",
-        email = "person@example.com",
-        roles = setOf(UserRole.USER)
-    )
+    private val user =
+        User(
+            id = UUID.fromString("00000000-0000-0000-0000-000000000123"),
+            name = "Example User",
+            email = "person@example.com",
+            roles = setOf(UserRole.USER),
+        )
 
     private fun credential() = UserCredential(user.id, "stored-bcrypt-hash")
 
@@ -40,9 +40,12 @@ class AuthenticatePersistedUserUseCaseTest {
     @Test
     fun `wrong password has only generic authentication failure`() {
         val passwords = FakePasswords()
-        val useCase = AuthenticatePersistedUserUseCase(
-            FakeUsers(user), FakeCredentials(credential()), passwords
-        )
+        val useCase =
+            AuthenticatePersistedUserUseCase(
+                FakeUsers(user),
+                FakeCredentials(credential()),
+                passwords,
+            )
 
         assertGenericFailure {
             useCase.execute("person@example.com", "wrong-password")
@@ -82,9 +85,12 @@ class AuthenticatePersistedUserUseCaseTest {
     fun `invalid stored hash is treated as invalid credentials`() {
         val passwords = FakePasswords()
         val brokenCredential = UserCredential(user.id, "invalid-stored-hash")
-        val useCase = AuthenticatePersistedUserUseCase(
-            FakeUsers(user), FakeCredentials(brokenCredential), passwords
-        )
+        val useCase =
+            AuthenticatePersistedUserUseCase(
+                FakeUsers(user),
+                FakeCredentials(brokenCredential),
+                passwords,
+            )
 
         assertGenericFailure {
             useCase.execute("person@example.com", "correct-password")
@@ -96,9 +102,12 @@ class AuthenticatePersistedUserUseCaseTest {
     fun `malformed email has generic failure without repository lookup`() {
         val users = FakeUsers(user)
         val passwords = FakePasswords()
-        val useCase = AuthenticatePersistedUserUseCase(
-            users, FakeCredentials(credential()), passwords
-        )
+        val useCase =
+            AuthenticatePersistedUserUseCase(
+                users,
+                FakeCredentials(credential()),
+                passwords,
+            )
 
         assertGenericFailure {
             useCase.execute("not-an-email", "correct-password")
@@ -112,13 +121,17 @@ class AuthenticatePersistedUserUseCaseTest {
         val users = FakeUsers(user)
         val problem = IllegalStateException("database unavailable")
         users.error = problem
-        val useCase = AuthenticatePersistedUserUseCase(
-            users, FakeCredentials(credential()), FakePasswords()
-        )
+        val useCase =
+            AuthenticatePersistedUserUseCase(
+                users,
+                FakeCredentials(credential()),
+                FakePasswords(),
+            )
 
-        val thrown = assertThrows(IllegalStateException::class.java) {
-            useCase.execute("person@example.com", "correct-password")
-        }
+        val thrown =
+            assertThrows(IllegalStateException::class.java) {
+                useCase.execute("person@example.com", "correct-password")
+            }
         assertSame(problem, thrown)
     }
 
@@ -127,13 +140,17 @@ class AuthenticatePersistedUserUseCaseTest {
         val credentials = FakeCredentials(credential())
         val problem = IllegalStateException("database unavailable")
         credentials.error = problem
-        val useCase = AuthenticatePersistedUserUseCase(
-            FakeUsers(user), credentials, FakePasswords()
-        )
+        val useCase =
+            AuthenticatePersistedUserUseCase(
+                FakeUsers(user),
+                credentials,
+                FakePasswords(),
+            )
 
-        val thrown = assertThrows(IllegalStateException::class.java) {
-            useCase.execute("person@example.com", "correct-password")
-        }
+        val thrown =
+            assertThrows(IllegalStateException::class.java) {
+                useCase.execute("person@example.com", "correct-password")
+            }
         assertSame(problem, thrown)
     }
 
@@ -147,18 +164,22 @@ class AuthenticatePersistedUserUseCaseTest {
 
         override fun hash(rawPassword: String): String = "dummy-bcrypt-hash"
 
-        override fun verify(rawPassword: String, encodedHash: String): Boolean {
+        override fun verify(
+            rawPassword: String,
+            encodedHash: String,
+        ): Boolean {
             checks.add(rawPassword to encodedHash)
             return rawPassword == "correct-password" && encodedHash == "stored-bcrypt-hash"
         }
     }
 
-    private class FakeUsers(private val user: User?) : UserRepository {
+    private class FakeUsers(
+        private val user: User?,
+    ) : UserRepository {
         var searchedEmail: String? = null
         var error: RuntimeException? = null
 
-        override fun findById(id: UUID): User? =
-            throw AssertionError("Unexpected user ID lookup")
+        override fun findById(id: UUID): User? = throw AssertionError("Unexpected user ID lookup")
 
         override fun findByEmail(email: String): User? {
             searchedEmail = email
@@ -166,12 +187,11 @@ class AuthenticatePersistedUserUseCaseTest {
             return user?.takeIf { it.email == email }
         }
 
-        override fun create(user: User): User =
-            throw AssertionError("Unexpected user creation")
+        override fun create(user: User): User = throw AssertionError("Unexpected user creation")
     }
 
     private class FakeCredentials(
-        private val credential: UserCredential?
+        private val credential: UserCredential?,
     ) : UserCredentialRepository {
         var searchedUserId: UUID? = null
         var error: RuntimeException? = null
@@ -182,7 +202,9 @@ class AuthenticatePersistedUserUseCaseTest {
             return credential?.takeIf { it.userId == userId }
         }
 
-        override fun create(credential: UserCredential): UserCredential =
-            throw AssertionError("Unexpected credential creation")
+        override fun create(credential: UserCredential): UserCredential {
+            val reason = "Unexpected credential creation"
+            throw AssertionError(reason)
+        }
     }
 }

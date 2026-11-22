@@ -7,8 +7,11 @@ package br.com.brunno.features.auth.application
 class BootstrapFirstAdminCommand(
     val name: String,
     val email: String,
-    val rawPassword: String
+    val rawPassword: String,
 ) {
     override fun toString(): String =
-        "BootstrapFirstAdminCommand(name=[REDACTED], email=[REDACTED], rawPassword=[REDACTED])"
+        buildString {
+            append("BootstrapFirstAdminCommand(")
+            append("name=[REDACTED], email=[REDACTED], rawPassword=[REDACTED])")
+        }
 }

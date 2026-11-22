@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class CreateUserUseCaseTest {
-
     private fun useCaseWithoutWrites(): CreateUserUseCase =
         CreateUserUseCase(
             object : UserRepository {
@@ -17,37 +16,38 @@ class CreateUserUseCaseTest {
 
                 override fun findByEmail(email: String): User? = null
 
-                override fun create(user: User): User {
+                override fun create(user: User): User =
                     throw AssertionError(
-                        "Repository must not be called for invalid input"
+                        "Repository must not be called for invalid input",
                     )
-                }
-            }
+            },
         )
 
     @Test
     fun `creates user with normalized data and default USER role`() {
         var persistedUser: User? = null
 
-        val repository = object : UserRepository {
-            override fun findById(id: UUID): User? = null
+        val repository =
+            object : UserRepository {
+                override fun findById(id: UUID): User? = null
 
-            override fun findByEmail(email: String): User? = null
+                override fun findByEmail(email: String): User? = null
 
-            override fun create(user: User): User {
-                persistedUser = user
-                return user
+                override fun create(user: User): User {
+                    persistedUser = user
+                    return user
+                }
             }
-        }
 
         val useCase = CreateUserUseCase(repository)
 
-        val result = useCase.execute(
-            CreateUserCommand(
-                name = "  Example User  ",
-                email = "  PERSON@EXAMPLE.COM  "
+        val result =
+            useCase.execute(
+                CreateUserCommand(
+                    name = "  Example User  ",
+                    email = "  PERSON@EXAMPLE.COM  ",
+                ),
             )
-        )
 
         assertEquals("Example User", result.name)
         assertEquals("person@example.com", result.email)
@@ -59,14 +59,15 @@ class CreateUserUseCaseTest {
     fun `rejects blank user name`() {
         val useCase = useCaseWithoutWrites()
 
-        val error = assertThrows(IllegalArgumentException::class.java) {
-            useCase.execute(
-                CreateUserCommand(
-                    name = "   ",
-                    email = "person@example.com"
+        val error =
+            assertThrows(IllegalArgumentException::class.java) {
+                useCase.execute(
+                    CreateUserCommand(
+                        name = "   ",
+                        email = "person@example.com",
+                    ),
                 )
-            )
-        }
+            }
 
         assertEquals("User name must not be blank", error.message)
     }
@@ -75,14 +76,15 @@ class CreateUserUseCaseTest {
     fun `rejects blank user email`() {
         val useCase = useCaseWithoutWrites()
 
-        val error = assertThrows(IllegalArgumentException::class.java) {
-            useCase.execute(
-                CreateUserCommand(
-                    name = "Example User",
-                    email = "   "
+        val error =
+            assertThrows(IllegalArgumentException::class.java) {
+                useCase.execute(
+                    CreateUserCommand(
+                        name = "Example User",
+                        email = "   ",
+                    ),
                 )
-            )
-        }
+            }
 
         assertEquals("User email must not be blank", error.message)
     }
@@ -91,28 +93,30 @@ class CreateUserUseCaseTest {
     fun `rejects malformed user emails before persistence`() {
         val useCase = useCaseWithoutWrites()
 
-        val invalidEmails = listOf(
-            "invalid-email",
-            "person@@example.com",
-            "person@example",
-            "person name@example.com"
-        )
+        val invalidEmails =
+            listOf(
+                "invalid-email",
+                "person@@example.com",
+                "person@example",
+                "person name@example.com",
+            )
 
         invalidEmails.forEach { email ->
-            val error = assertThrows(
-                InvalidUserEmailFormatException::class.java
-            ) {
-                useCase.execute(
-                    CreateUserCommand(
-                        name = "Example User",
-                        email = email
+            val error =
+                assertThrows(
+                    InvalidUserEmailFormatException::class.java,
+                ) {
+                    useCase.execute(
+                        CreateUserCommand(
+                            name = "Example User",
+                            email = email,
+                        ),
                     )
-                )
-            }
+                }
 
             assertEquals(
                 "User email has an invalid format",
-                error.message
+                error.message,
             )
         }
     }

@@ -12,29 +12,27 @@ import java.util.UUID
 @ApplicationScoped
 @IfBuildProperty(
     name = "app.persistence.mongodb.enabled",
-    stringValue = "true"
+    stringValue = "true",
 )
 class MongoUserCredentialRepository :
     UserCredentialRepository,
     PanacheMongoRepositoryBase<MongoUserCredentialDocument, String> {
-
     override fun findByUserId(userId: UUID): UserCredential? =
         findById(userId.toString())
             ?.let(MongoUserCredentialMapper::toDomain)
 
-    override fun create(
-        credential: UserCredential
-    ): UserCredential {
-        val document = MongoUserCredentialMapper.toDocument(
-            credential
-        )
+    override fun create(credential: UserCredential): UserCredential {
+        val document =
+            MongoUserCredentialMapper.toDocument(
+                credential,
+            )
 
         try {
             persist(document)
         } catch (error: MongoException) {
             val isDuplicateId =
                 error.code == 11000 &&
-                        error.message.orEmpty().contains("_id_")
+                    error.message.orEmpty().contains("_id_")
 
             if (isDuplicateId) {
                 throw UserCredentialAlreadyExistsException(error)

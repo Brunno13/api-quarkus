@@ -12,12 +12,11 @@ import java.util.Base64
  */
 internal class ProductionLoginRateLimitSettings private constructor(
     val policy: LoginRateLimitPolicy,
-    private val secret: ByteArray
+    private val secret: ByteArray,
 ) {
     fun secretCopy(): ByteArray = secret.copyOf()
 
-    override fun toString(): String =
-        "ProductionLoginRateLimitSettings(policy=$policy, secret=[REDACTED])"
+    override fun toString(): String = "ProductionLoginRateLimitSettings(policy=$policy, secret=[REDACTED])"
 
     companion object {
         fun parse(
@@ -25,7 +24,7 @@ internal class ProductionLoginRateLimitSettings private constructor(
             identityMaxAttempts: Int,
             identityWindowSeconds: Long,
             originMaxAttempts: Int,
-            originWindowSeconds: Long
+            originWindowSeconds: Long,
         ): ProductionLoginRateLimitSettings {
             val text = encodedSecret?.trim()
             require(!text.isNullOrEmpty()) {
@@ -35,25 +34,31 @@ internal class ProductionLoginRateLimitSettings private constructor(
             require(text.length <= 172) {
                 "Login rate-limit HMAC key encoding is invalid"
             }
-            val decoded = try {
-                Base64.getDecoder().decode(text)
-            } catch (_: IllegalArgumentException) {
-                throw IllegalArgumentException("Login rate-limit HMAC key encoding is invalid")
-            }
+            val decoded =
+                try {
+                    Base64.getDecoder().decode(text)
+                } catch (_: IllegalArgumentException) {
+                    throw IllegalArgumentException("Login rate-limit HMAC key encoding is invalid")
+                }
             try {
                 require(decoded.size in 32..128) {
                     "Login rate-limit HMAC key must contain 32 to 128 bytes"
                 }
                 return ProductionLoginRateLimitSettings(
-                    policy = LoginRateLimitPolicy(
-                        perIdentity = LoginRateLimitQuota(
-                            identityMaxAttempts, identityWindowSeconds
+                    policy =
+                        LoginRateLimitPolicy(
+                            perIdentity =
+                                LoginRateLimitQuota(
+                                    identityMaxAttempts,
+                                    identityWindowSeconds,
+                                ),
+                            perOrigin =
+                                LoginRateLimitQuota(
+                                    originMaxAttempts,
+                                    originWindowSeconds,
+                                ),
                         ),
-                        perOrigin = LoginRateLimitQuota(
-                            originMaxAttempts, originWindowSeconds
-                        )
-                    ),
-                    secret = decoded.copyOf()
+                    secret = decoded.copyOf(),
                 )
             } finally {
                 decoded.fill(0)

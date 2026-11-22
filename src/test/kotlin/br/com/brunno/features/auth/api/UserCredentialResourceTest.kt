@@ -20,7 +20,6 @@ import java.util.UUID
 @QuarkusTest
 @TestProfile(CredentialProvisioningApiTestProfile::class)
 class UserCredentialResourceTest {
-
     @Inject
     lateinit var credentials: TestUserCredentialRepository
 
@@ -89,9 +88,12 @@ class UserCredentialResourceTest {
             .then()
             .statusCode(404)
             .body(
-                "title", equalTo("Not Found"),
-                "status", equalTo(404),
-                "detail", equalTo("User not found")
+                "title",
+                equalTo("Not Found"),
+                "status",
+                equalTo(404),
+                "detail",
+                equalTo("User not found"),
             )
     }
 
@@ -116,9 +118,12 @@ class UserCredentialResourceTest {
             .then()
             .statusCode(409)
             .body(
-                "title", equalTo("Conflict"),
-                "status", equalTo(409),
-                "detail", equalTo("Credentials already exist for this user")
+                "title",
+                equalTo("Conflict"),
+                "status",
+                equalTo(409),
+                "detail",
+                equalTo("Credentials already exist for this user"),
             )
 
         assertTrue(credentials.findByUserId(existingId)?.passwordHash == originalHash)
@@ -135,9 +140,12 @@ class UserCredentialResourceTest {
             .then()
             .statusCode(400)
             .body(
-                "title", equalTo("Bad Request"),
-                "status", equalTo(400),
-                "detail", equalTo("Initial password is invalid")
+                "title",
+                equalTo("Bad Request"),
+                "status",
+                equalTo(400),
+                "detail",
+                equalTo("Initial password is invalid"),
             )
     }
 
@@ -154,8 +162,10 @@ class UserCredentialResourceTest {
             .then()
             .statusCode(400)
             .body(
-                "status", equalTo(400),
-                "detail", equalTo("Initial password is invalid")
+                "status",
+                equalTo(400),
+                "detail",
+                equalTo("Initial password is invalid"),
             )
     }
 
@@ -170,8 +180,10 @@ class UserCredentialResourceTest {
             .then()
             .statusCode(400)
             .body(
-                "status", equalTo(400),
-                "detail", equalTo("Initial password is invalid")
+                "status",
+                equalTo(400),
+                "detail",
+                equalTo("Initial password is invalid"),
             )
     }
 }

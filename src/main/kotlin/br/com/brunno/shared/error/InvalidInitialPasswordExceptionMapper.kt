@@ -7,18 +7,16 @@ import jakarta.ws.rs.ext.ExceptionMapper
 import jakarta.ws.rs.ext.Provider
 
 @Provider
-class InvalidInitialPasswordExceptionMapper :
-    ExceptionMapper<InvalidInitialPasswordException> {
-
+class InvalidInitialPasswordExceptionMapper : ExceptionMapper<InvalidInitialPasswordException> {
     override fun toResponse(exception: InvalidInitialPasswordException): Response =
-        Response.status(Response.Status.BAD_REQUEST)
+        Response
+            .status(Response.Status.BAD_REQUEST)
             .type(MediaType.APPLICATION_JSON)
             .entity(
                 ApiErrorResponse(
                     title = "Bad Request",
                     status = 400,
-                    detail = "Initial password is invalid"
-                )
-            )
-            .build()
+                    detail = "Initial password is invalid",
+                ),
+            ).build()
 }

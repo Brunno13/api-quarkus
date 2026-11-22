@@ -21,44 +21,50 @@ import java.util.Date
  */
 @ApplicationScoped
 @IfBuildProperty(name = "app.persistence.mongodb.enabled", stringValue = "true")
-class MongoInitialAdminBootstrapWriteGate @Inject constructor(
-    private val mongoClientProvider: Provider<MongoClient>,
-    @ConfigProperty(name = "quarkus.mongodb.database") private val databaseName: String
-) : InitialAdminBootstrapWriteGate {
+class MongoInitialAdminBootstrapWriteGate
+    @Inject
+    constructor(
+        private val mongoClientProvider: Provider<MongoClient>,
+        @ConfigProperty(name = "quarkus.mongodb.database") private val databaseName: String,
+    ) : InitialAdminBootstrapWriteGate {
+        // Direct client constructor is used by the standalone MongoDB integration harness.
+        constructor(mongoClient: MongoClient, databaseName: String) :
+            this(Provider { mongoClient }, databaseName)
 
-    // Direct client constructor is used by the standalone MongoDB integration harness.
-    constructor(mongoClient: MongoClient, databaseName: String) :
-        this(Provider { mongoClient }, databaseName)
-
-    override fun reserveOnce() {
-        val reservation = Document("_id", "initial-admin")
-            .append("createdAt", Date())
-            .append("state", "consumed")
-        try {
-            database().getCollection("admin_bootstrap")
-                .withWriteConcern(WriteConcern.JOURNALED)
-                .insertOne(reservation)
-        } catch (error: MongoException) {
-            if (error.code == 11000) {
-                throw InitialAdminAlreadyConfiguredException()
+        override fun reserveOnce() {
+            val reservation =
+                Document("_id", "initial-admin")
+                    .append("createdAt", Date())
+                    .append("state", "consumed")
+            try {
+                database()
+                    .getCollection("admin_bootstrap")
+                    .withWriteConcern(WriteConcern.JOURNALED)
+                    .insertOne(reservation)
+            } catch (error: MongoException) {
+                if (error.code == 11000) {
+                    throw InitialAdminAlreadyConfiguredException()
+                }
+                throw error
             }
-            throw error
         }
+
+        override fun adminAlreadyExists(): Boolean =
+            database()
+                .getCollection("users")
+                .find(Filters.eq("roles", "ADMIN"))
+                .first() != null
+
+        override fun persistCredentialDurably(credential: UserCredential) {
+            // Matches the existing user_credentials schema; no raw password is written.
+            val document =
+                Document("_id", credential.userId.toString())
+                    .append("passwordHash", credential.passwordHash)
+            database()
+                .getCollection("user_credentials")
+                .withWriteConcern(WriteConcern.JOURNALED)
+                .insertOne(document)
+        }
+
+        private fun database() = mongoClientProvider.get().getDatabase(databaseName)
     }
-
-    override fun adminAlreadyExists(): Boolean =
-        database().getCollection("users")
-            .find(Filters.eq("roles", "ADMIN"))
-            .first() != null
-
-    override fun persistCredentialDurably(credential: UserCredential) {
-        // Matches the existing user_credentials schema; no raw password is written.
-        val document = Document("_id", credential.userId.toString())
-            .append("passwordHash", credential.passwordHash)
-        database().getCollection("user_credentials")
-            .withWriteConcern(WriteConcern.JOURNALED)
-            .insertOne(document)
-    }
-
-    private fun database() = mongoClientProvider.get().getDatabase(databaseName)
-}

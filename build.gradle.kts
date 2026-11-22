@@ -7,6 +7,7 @@ plugins {
     id("io.quarkus")
     jacoco
     id("dev.detekt") version "2.0.0-alpha.6"
+    id("com.diffplug.spotless") version "8.10.4"
 }
 
 repositories {
@@ -171,5 +172,14 @@ tasks.register<Test>("mongoIntegrationTest") {
 configurations.configureEach {
     if (name == "runtimeClasspath" || name == "testRuntimeClasspath") {
         resolutionStrategy.activateDependencyLocking()
+    }
+}
+
+// AQK-16 discovery: inspect Kotlin formatting without changing the existing check gate.
+spotless {
+    isEnforceCheck = false
+    kotlin {
+        target("src/main/kotlin/**/*.kt", "src/test/kotlin/**/*.kt")
+        ktlint("1.8.0")
     }
 }

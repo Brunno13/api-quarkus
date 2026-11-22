@@ -15,7 +15,7 @@ class LoginRateLimitKeyHasherTest {
         val hasher = LoginRateLimitKeyHasher(secret)
         assertEquals(
             hasher.keyFor("identity", "person@example.test", 21),
-            hasher.keyFor("identity", "person@example.test", 21)
+            hasher.keyFor("identity", "person@example.test", 21),
         )
     }
 
@@ -24,7 +24,7 @@ class LoginRateLimitKeyHasherTest {
         val hasher = LoginRateLimitKeyHasher(secret)
         assertNotEquals(
             hasher.keyFor("identity", "same-value", 21),
-            hasher.keyFor("origin", "same-value", 21)
+            hasher.keyFor("origin", "same-value", 21),
         )
     }
 
@@ -33,7 +33,7 @@ class LoginRateLimitKeyHasherTest {
         val hasher = LoginRateLimitKeyHasher(secret)
         assertNotEquals(
             hasher.keyFor("identity", "person@example.test", 21),
-            hasher.keyFor("identity", "person@example.test", 22)
+            hasher.keyFor("identity", "person@example.test", 22),
         )
     }
 
@@ -42,8 +42,10 @@ class LoginRateLimitKeyHasherTest {
         assertNotEquals(
             LoginRateLimitKeyHasher(secret).keyFor("identity", "person@example.test", 21),
             LoginRateLimitKeyHasher(ByteArray(32) { 42 }).keyFor(
-                "identity", "person@example.test", 21
-            )
+                "identity",
+                "person@example.test",
+                21,
+            ),
         )
     }
 

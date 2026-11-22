@@ -6,12 +6,12 @@ data class LoginResult(
     val accessToken: String,
     val tokenType: String,
     val expiresIn: Long,
-    val user: AuthenticatedUser
+    val user: AuthenticatedUser,
 )
 
 data class AuthenticatedUser(
     val id: Long,
     val name: String,
     val email: String,
-    val roles: Set<UserRole>
+    val roles: Set<UserRole>,
 )

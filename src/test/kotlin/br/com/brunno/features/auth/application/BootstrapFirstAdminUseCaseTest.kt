@@ -20,9 +20,10 @@ class BootstrapFirstAdminUseCaseTest {
         val store = FakeStore()
         val hasher = FakeHasher()
 
-        val created = useCase(store, hasher).execute(
-            command(name = "  First Admin  ", email = "  ADMIN@Example.Test  ")
-        )
+        val created =
+            useCase(store, hasher).execute(
+                command(name = "  First Admin  ", email = "  ADMIN@Example.Test  "),
+            )
 
         assertSame(created, store.user)
         assertEquals("First Admin", created.name)
@@ -71,9 +72,10 @@ class BootstrapFirstAdminUseCaseTest {
     fun `maps invalid password to existing provisioning error without writing`() {
         val store = FakeStore()
         val hasher = FakeHasher(failure = IllegalArgumentException("raw password rejected"))
-        val error = assertThrows(InvalidInitialPasswordException::class.java) {
-            useCase(store, hasher).execute(command())
-        }
+        val error =
+            assertThrows(InvalidInitialPasswordException::class.java) {
+                useCase(store, hasher).execute(command())
+            }
         assertFalse(error.message.orEmpty().contains(defaultPassword))
         assertEquals(0, store.calls)
     }
@@ -92,9 +94,10 @@ class BootstrapFirstAdminUseCaseTest {
     fun `propagates infrastructure failures without returning success`() {
         val failure = IllegalStateException("database unavailable")
         val store = FakeStore(failure = failure)
-        val actual = assertThrows(IllegalStateException::class.java) {
-            useCase(store, FakeHasher()).execute(command())
-        }
+        val actual =
+            assertThrows(IllegalStateException::class.java) {
+                useCase(store, FakeHasher()).execute(command())
+            }
         assertSame(failure, actual)
         assertNull(store.user)
     }
@@ -103,9 +106,10 @@ class BootstrapFirstAdminUseCaseTest {
     fun `propagates operational hashing failures without persisting`() {
         val failure = IllegalStateException("BCrypt provider unavailable")
         val store = FakeStore()
-        val actual = assertThrows(IllegalStateException::class.java) {
-            useCase(store, FakeHasher(failure)).execute(command())
-        }
+        val actual =
+            assertThrows(IllegalStateException::class.java) {
+                useCase(store, FakeHasher(failure)).execute(command())
+            }
         assertSame(failure, actual)
         assertEquals(0, store.calls)
     }
@@ -123,20 +127,25 @@ class BootstrapFirstAdminUseCaseTest {
 
     private fun command(
         name: String = "First Admin",
-        email: String = "admin@example.test"
+        email: String = "admin@example.test",
     ) = BootstrapFirstAdminCommand(name, email, defaultPassword)
 
-    private fun useCase(store: FakeStore, hasher: FakeHasher) =
-        BootstrapFirstAdminUseCase(store, hasher)
+    private fun useCase(
+        store: FakeStore,
+        hasher: FakeHasher,
+    ) = BootstrapFirstAdminUseCase(store, hasher)
 
     private class FakeStore(
-        private val failure: RuntimeException? = null
+        private val failure: RuntimeException? = null,
     ) : InitialAdminBootstrapStore {
         var calls: Int = 0
         var user: User? = null
         var credential: UserCredential? = null
 
-        override fun createFirstAdmin(user: User, credential: UserCredential): User {
+        override fun createFirstAdmin(
+            user: User,
+            credential: UserCredential,
+        ): User {
             calls++
             failure?.let { throw it }
             this.user = user
@@ -146,16 +155,19 @@ class BootstrapFirstAdminUseCaseTest {
     }
 
     private class FakeHasher(
-        private val failure: RuntimeException? = null
+        private val failure: RuntimeException? = null,
     ) : PasswordHasher {
         val inputs = mutableListOf<String>()
+
         override fun hash(rawPassword: String): String {
             inputs.add(rawPassword)
             failure?.let { throw it }
             return "test-hash-not-a-secret"
         }
 
-        override fun verify(rawPassword: String, encodedHash: String): Boolean =
-            throw UnsupportedOperationException("not needed in this use case")
+        override fun verify(
+            rawPassword: String,
+            encodedHash: String,
+        ): Boolean = throw UnsupportedOperationException("not needed in this use case")
     }
 }

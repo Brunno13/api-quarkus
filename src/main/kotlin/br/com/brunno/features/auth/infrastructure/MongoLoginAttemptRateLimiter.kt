@@ -39,9 +39,8 @@ class MongoLoginAttemptRateLimiter(
     databaseName: String,
     private val policy: LoginRateLimitPolicy,
     secret: ByteArray,
-    private val clock: Clock = Clock.systemUTC()
+    private val clock: Clock = Clock.systemUTC(),
 ) : LoginAttemptRateLimiter {
-
     companion object {
         const val COLLECTION_NAME: String = "login_rate_limit_windows"
     }
@@ -49,21 +48,26 @@ class MongoLoginAttemptRateLimiter(
     private val keys = LoginRateLimitKeyHasher(secret)
     private val collection: MongoCollection<Document>
     private val indexLock = Any()
+
     @Volatile private var ttlIndexReady = false
 
     init {
         require(databaseName.isNotBlank()) { "MongoDB database name is required" }
-        collection = mongoClient.getDatabase(databaseName)
-            .getCollection(COLLECTION_NAME)
-            .withWriteConcern(WriteConcern.JOURNALED)
+        collection =
+            mongoClient
+                .getDatabase(databaseName)
+                .getCollection(COLLECTION_NAME)
+                .withWriteConcern(WriteConcern.JOURNALED)
     }
 
     override fun reserveAttempt(
         normalizedEmail: String,
-        clientIp: String
+        clientIp: String,
     ): LoginAttemptDecision {
-        require(UserEmail.isValid(normalizedEmail) &&
-            normalizedEmail == UserEmail.normalize(normalizedEmail)) {
+        require(
+            UserEmail.isValid(normalizedEmail) &&
+                normalizedEmail == UserEmail.normalize(normalizedEmail),
+        ) {
             "A valid normalized email is required"
         }
         require(clientIp.isNotBlank() && clientIp.length <= 64) {
@@ -84,7 +88,7 @@ class MongoLoginAttemptRateLimiter(
         dimension: String,
         identifier: String,
         quota: LoginRateLimitQuota,
-        nowSeconds: Long
+        nowSeconds: Long,
     ): LoginAttemptDecision {
         val bucket = Math.floorDiv(nowSeconds, quota.windowSeconds)
         val secondsRemaining = quota.windowSeconds - Math.floorMod(nowSeconds, quota.windowSeconds)
@@ -92,26 +96,30 @@ class MongoLoginAttemptRateLimiter(
         val id = keys.keyFor(dimension, identifier, bucket)
 
         val filter = Filters.eq("_id", id)
-        val update = Updates.combine(
-            Updates.inc("attempts", 1L),
-            Updates.setOnInsert("expireAt", Date.from(Instant.ofEpochSecond(endSeconds)))
-        )
-        val options = FindOneAndUpdateOptions()
-            .upsert(true)
-            .returnDocument(ReturnDocument.AFTER)
+        val update =
+            Updates.combine(
+                Updates.inc("attempts", 1L),
+                Updates.setOnInsert("expireAt", Date.from(Instant.ofEpochSecond(endSeconds))),
+            )
+        val options =
+            FindOneAndUpdateOptions()
+                .upsert(true)
+                .returnDocument(ReturnDocument.AFTER)
 
         // Concurrent upserts may encounter a duplicate-key race on first use.
         // Retry *only* the duplicate-key case; never retry unknown network/write
         // outcomes, which might already have consumed a quota.
-        val document = try {
-            collection.findOneAndUpdate(filter, update, options)
-        } catch (error: MongoException) {
-            if (error.code != 11000) throw error
-            collection.findOneAndUpdate(filter, update, options)
-        } ?: error("MongoDB rate-limit counter update returned no document")
+        val document =
+            try {
+                collection.findOneAndUpdate(filter, update, options)
+            } catch (error: MongoException) {
+                if (error.code != 11000) throw error
+                collection.findOneAndUpdate(filter, update, options)
+            } ?: error("MongoDB rate-limit counter update returned no document")
 
-        val count = (document["attempts"] as? Number)?.toLong()
-            ?: error("MongoDB rate-limit counter is missing or invalid")
+        val count =
+            (document["attempts"] as? Number)?.toLong()
+                ?: error("MongoDB rate-limit counter is missing or invalid")
         check(count > 0) { "MongoDB rate-limit counter must be positive" }
 
         return if (count <= quota.maxAttempts) {
@@ -127,7 +135,7 @@ class MongoLoginAttemptRateLimiter(
             if (ttlIndexReady) return
             collection.createIndex(
                 Indexes.ascending("expireAt"),
-                IndexOptions().expireAfter(0L, TimeUnit.SECONDS)
+                IndexOptions().expireAfter(0L, TimeUnit.SECONDS),
             )
             ttlIndexReady = true
         }

@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test
 
 @QuarkusTest
 class AuthResourceTest {
-
     @Test
     fun `valid credentials return HTTP 200`() {
         given()
@@ -19,18 +18,22 @@ class AuthResourceTest {
                     "email": "admin@local.dev",
                     "password": "admin123"
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/auth/login")
             .then()
             .statusCode(200)
             .body(
-                "accessToken", equalTo("mock-access-token"),
-                "tokenType", equalTo("Bearer"),
-                "expiresIn", equalTo(900),
-                "user.email", equalTo("admin@local.dev"),
-                "user.roles", hasItem("ADMIN")
+                "accessToken",
+                equalTo("mock-access-token"),
+                "tokenType",
+                equalTo("Bearer"),
+                "expiresIn",
+                equalTo(900),
+                "user.email",
+                equalTo("admin@local.dev"),
+                "user.roles",
+                hasItem("ADMIN"),
             )
     }
 
@@ -44,16 +47,18 @@ class AuthResourceTest {
                     "email": "wrong@test.com",
                     "password": "wrong"
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/auth/login")
             .then()
             .statusCode(401)
             .body(
-                "title", equalTo("Unauthorized"),
-                "status", equalTo(401),
-                "detail", equalTo("Invalid credentials")
+                "title",
+                equalTo("Unauthorized"),
+                "status",
+                equalTo(401),
+                "detail",
+                equalTo("Invalid credentials"),
             )
     }
 
@@ -67,15 +72,16 @@ class AuthResourceTest {
                     "email": "invalid",
                     "password": "admin123"
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/auth/login")
             .then()
             .statusCode(400)
             .body(
-                "title", equalTo("Constraint Violation"),
-                "status", equalTo(400)
+                "title",
+                equalTo("Constraint Violation"),
+                "status",
+                equalTo(400),
             )
     }
 
@@ -89,9 +95,8 @@ class AuthResourceTest {
                     "email": "admin@local.dev",
                     "password": ""
                 }
-                """.trimIndent()
-            )
-            .`when`()
+                """.trimIndent(),
+            ).`when`()
             .post("/auth/login")
             .then()
             .statusCode(400)

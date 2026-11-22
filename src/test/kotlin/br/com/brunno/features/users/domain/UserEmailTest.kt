@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class UserEmailTest {
-
     @Test
     fun `normalizes whitespace and casing`() {
         val result = UserEmail.normalize("  ADMIN@Example.COM  ")
@@ -18,7 +17,7 @@ class UserEmailTest {
 
         assertEquals(
             normalized,
-            UserEmail.normalize(normalized)
+            UserEmail.normalize(normalized),
         )
     }
 }

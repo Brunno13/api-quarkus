@@ -8,18 +8,15 @@ data class LoginRequest(
     @field:NotBlank(message = "Email is required")
     @field:Email(message = "Email must be valid")
     val email: String,
-
     @field:NotBlank(message = "Password is required")
-    val password: String
+    val password: String,
 ) {
-    fun toCommand(): LoginCommand {
-        return LoginCommand(
+    fun toCommand(): LoginCommand =
+        LoginCommand(
             email = email,
-            password = password
+            password = password,
         )
-    }
 
     // Prevent accidental disclosure of credentials in application logs.
-    override fun toString(): String =
-        "LoginRequest(email=[REDACTED], password=[REDACTED])"
+    override fun toString(): String = "LoginRequest(email=[REDACTED], password=[REDACTED])"
 }

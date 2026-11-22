@@ -8,6 +8,8 @@ import br.com.brunno.features.auth.domain.UserCredential
  */
 interface InitialAdminBootstrapWriteGate {
     fun reserveOnce()
+
     fun adminAlreadyExists(): Boolean
+
     fun persistCredentialDurably(credential: UserCredential)
 }

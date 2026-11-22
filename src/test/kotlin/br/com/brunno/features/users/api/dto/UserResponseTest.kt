@@ -7,17 +7,17 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class UserResponseTest {
-
     @Test
     fun `maps user domain to API response`() {
         val id = UUID.randomUUID()
 
-        val user = User(
-            id = id,
-            name = "Example User",
-            email = "person@example.com",
-            roles = setOf(UserRole.USER)
-        )
+        val user =
+            User(
+                id = id,
+                name = "Example User",
+                email = "person@example.com",
+                roles = setOf(UserRole.USER),
+            )
 
         val response = UserResponse.from(user)
 
