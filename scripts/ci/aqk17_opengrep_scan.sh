@@ -3,8 +3,8 @@
 # Fail on scanner errors, invalid rules, missing targets, or missing probe match.
 set -eu
 
-if [ ! -s .opengrep.yml ] || [ ! -x .aqk17-bin/opengrep ]; then
-  echo 'AQK_17_OPENGREP_DISCOVERY=FAIL (rules or verified binary missing)' >&2
+if [ ! -s .opengrep.yml ] || [ ! -s .aqk17-opengrepignore ] || [ ! -x .aqk17-bin/opengrep ]; then
+  echo 'AQK_17_OPENGREP_DISCOVERY=FAIL (rules, ignore policy or verified binary missing)' >&2
   exit 1
 fi
 
@@ -38,6 +38,7 @@ python3 scripts/ci/aqk17_opengrep_discovery.py --probe "$report_dir/probe.json"
 # without --error. The original scanner stderr/JSON remain private and ephemeral.
 scan_rc=0
 ./.aqk17-bin/opengrep scan --config .opengrep.yml --json \
+  --semgrepignore-filename .aqk17-opengrepignore \
   --output "$report_dir/source.json" src/main/kotlin src/test/kotlin \
   > "$report_dir/source.out" 2> "$report_dir/source.err" || scan_rc=$?
 echo "OPENGREP_SOURCE_EXIT_CODE=$scan_rc"

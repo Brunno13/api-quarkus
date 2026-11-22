@@ -1,0 +1,8 @@
+# AQK-17: CI-scoped Opengrep target exclusions.
+# Override the built-in defaults that exclude test/ and tests/;
+# both src/main/kotlin and src/test/kotlin must be fully scanned.
+# Keep the usual build/vendor exclusions as a safeguard if scope grows.
+.gradle/
+build/
+node_modules/
+vendor/

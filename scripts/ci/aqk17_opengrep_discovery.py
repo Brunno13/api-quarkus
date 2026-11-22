@@ -5,6 +5,7 @@ Initial discovery does not reject findings. It rejects errors, skipped rules,
 missing Kotlin targets, invalid JSON, and a failed synthetic positive control.
 """
 import json
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -42,11 +43,67 @@ def summarize(report: object, *, probe: bool = False) -> tuple[int, int, Counter
     return len(scanned), len(results), rule_counts
 
 
+
+def normalize_source_path(path: str) -> str:
+    """Compare report paths using the same repo-relative spelling as Git."""
+    normalized = path.replace("\\", "/")
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized
+
+
+def verify_coverage(report: object, tracked: set[str]) -> tuple[int, int]:
+    """Fail closed when the scanner silently skips any tracked Kotlin file."""
+    if not isinstance(report, dict):
+        raise ValueError("invalid report")
+    paths = report.get("paths")
+    if not isinstance(paths, dict) or not isinstance(paths.get("scanned"), list):
+        raise ValueError("missing scanned paths")
+    scanned = paths["scanned"]
+    if not all(isinstance(p, str) for p in scanned):
+        raise ValueError("invalid scanned path")
+    normalized = [normalize_source_path(p) for p in scanned]
+    actual = set(normalized)
+    if len(actual) != len(normalized):
+        raise ValueError("duplicate scanned targets")
+    tracked_main = {p for p in tracked if p.startswith("src/main/kotlin/") and p.endswith(".kt")}
+    tracked_test = {p for p in tracked if p.startswith("src/test/kotlin/") and p.endswith(".kt")}
+    if not tracked_main or not tracked_test:
+        raise ValueError("missing tracked main or test Kotlin sources")
+    if tracked_main | tracked_test != actual:
+        raise ValueError("incomplete or unexpected Kotlin scan coverage")
+    return len(tracked_main), len(tracked_test)
+
+
+def tracked_kotlin_sources() -> set[str]:
+    """Get the authoritative tracked-file inventory without exposing paths."""
+    output = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", "src/main/kotlin", "src/test/kotlin"],
+        stderr=subprocess.DEVNULL,
+    )
+    return {
+        normalize_source_path(name)
+        for name in output.decode("utf-8", errors="surrogateescape").split("\0")
+        if name.endswith(".kt")
+    }
+
 def self_test() -> None:
     ok = {"results": [], "errors": [], "paths": {"scanned": ["src/main/kotlin/Example.kt"]}, "skipped_rules": []}
     assert summarize(ok)[:2] == (1, 0)
     with_finding = {**ok, "results": [{"check_id": PROBE_RULE}]}
     assert summarize(with_finding, probe=True)[1] == 1
+    tracked = {"src/main/kotlin/A.kt", "src/test/kotlin/B.kt"}
+    both = {**ok, "paths": {"scanned": ["./src/main/kotlin/A.kt", "src/test/kotlin/B.kt"]}}
+    assert verify_coverage(both, tracked) == (1, 1)
+    incomplete = {**ok, "paths": {"scanned": ["src/main/kotlin/A.kt"]}}
+    duplicate = {**ok, "paths": {"scanned": ["src/main/kotlin/A.kt", "src/main/kotlin/A.kt", "src/test/kotlin/B.kt"]}}
+    substitute = {**ok, "paths": {"scanned": ["src/main/kotlin/A.kt", "src/test/kotlin/C.kt"]}}
+    for report in (incomplete, duplicate, substitute):
+        try:
+            verify_coverage(report, tracked)
+        except ValueError:
+            continue
+        raise AssertionError("incomplete or substituted scan unexpectedly passed")
     bad = [
         {**ok, "paths": {"scanned": []}},
         {**ok, "paths": {"scanned": ["README.md"]}},
@@ -77,15 +134,22 @@ def main() -> int:
         print("AQK_17_OPENGREP_DISCOVERY=FAIL (invalid arguments)", file=sys.stderr)
         return 2
     try:
-        scanned, findings, rule_counts = summarize(json.loads(Path(path).read_text(encoding="utf-8")), probe=probe)
-    except (OSError, UnicodeError, ValueError) as exc:
+        report = json.loads(Path(path).read_text(encoding="utf-8"))
+        scanned, findings, rule_counts = summarize(report, probe=probe)
+        if not probe:
+            main_count, test_count = verify_coverage(report, tracked_kotlin_sources())
+    except (OSError, UnicodeError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"AQK_17_OPENGREP_DISCOVERY=FAIL ({type(exc).__name__})", file=sys.stderr)
         return 1
     if probe:
         print("AQK_17_OPENGREP_PROBE=PASS")
         return 0
     print("===== AQK-17 OPENGREP KOTLIN DISCOVERY =====")
+    print(f"OPENGREP_TRACKED_KOTLIN_FILES={main_count + test_count}")
+    print(f"OPENGREP_SCANNED_MAIN_KOTLIN_FILES={main_count}")
+    print(f"OPENGREP_SCANNED_TEST_KOTLIN_FILES={test_count}")
     print(f"OPENGREP_SCANNED_KOTLIN_FILES={scanned}")
+    print("OPENGREP_KOTLIN_COVERAGE=PASS")
     print(f"OPENGREP_FINDINGS_TOTAL={findings}")
     for rule_id in sorted(rule_counts):
         print(f"OPENGREP_RULE_{rule_id.upper().replace('-', '_')}={rule_counts[rule_id]}")
