@@ -7,3 +7,7 @@ src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoa
 # AQK-16: synthetically invalid DER in current tree; invalid Base64 in Spotless commit.
 src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:108
 040c6079ffaf54fe29ec30464d0bf3ffdcb24ce3:src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:93
+# AQK-16: two self-scan test literals in the previously reviewed gate commit.
+# These are exact history-only fingerprints, never a path-wide allowlist.
+7d125ce274a885606579a2cad1c005e134daab93:scripts/ci/aqk15_gitleaks_gate.py:private-key:40
+7d125ce274a885606579a2cad1c005e134daab93:scripts/ci/aqk15_gitleaks_gate.py:private-key:306

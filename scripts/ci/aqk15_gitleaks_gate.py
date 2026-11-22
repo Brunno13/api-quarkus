@@ -24,26 +24,27 @@ FIXTURE_PATH = (
 )
 HISTORICAL_COMMIT = '452f631eb0e00311971c947896f37159d48cfc72'
 SPOTLESS_COMMIT = '040c6079ffaf54fe29ec30464d0bf3ffdcb24ce3'
+# Exact commit that introduced the gate self-scan literals, reviewed separately.
+GATE_SELF_SCAN_COMMIT = '7d125ce274a885606579a2cad1c005e134daab93'
+GATE_SELF_SCAN_PATH = 'scripts/ci/aqk15_gitleaks_gate.py'
 EXPECTED_TEST_LINE = 'fun `rejects invalid PEM base64 without exposing key material`('
 EXPECTED_MARKER_LINE = 'val marker = "NOT_A_PRIVATE_KEY_12345"'
 EXPECTED_PATH_LINE = 'val path = directory.resolve("malformed.pem")'
-EXPECTED_PEM_LINE = (
-    '"-----BEGIN PRIVATE KEY-----\\n$marker\\n'
-    '-----END PRIVATE KEY-----\\n",'
-)
-
+# Build the source-code fixture comparison without embedding full PEM blocks
+# directly in the Python source; otherwise Gitleaks scans its own gate tests.
+PEM_BEGIN = '-----BEGIN ' + 'PRIVATE KEY-----'
+PEM_END = '-----END ' + 'PRIVATE KEY-----'
+EXPECTED_PEM_LINE = f'"{PEM_BEGIN}\\n$marker\\n{PEM_END}\\n",'
 
 # Synthetic invalid-input fixtures added in 040c607, not usable private keys.
 EXPECTED_BASE64_TEST = 'fun `rejects invalid base64 inside a structurally valid PKCS8 PEM`('
 EXPECTED_BASE64_PATH = 'val path = directory.resolve("invalid-base64.pem")'
-EXPECTED_BASE64_PEM = (
-    '"-----BEGIN PRIVATE KEY-----\\nA\\n-----END PRIVATE KEY-----\\n",'
-)
+EXPECTED_BASE64_PEM = f'"{PEM_BEGIN}\\nA\\n{PEM_END}\\n",'
 EXPECTED_DER_TEST = 'fun `rejects invalid DER after decoding a structurally valid PKCS8 PEM`('
 EXPECTED_DER_PATH = 'val path = directory.resolve("invalid-der.pem")'
-EXPECTED_DER_PEM = (
-    '"-----BEGIN PRIVATE KEY-----\\nAA==\\n-----END PRIVATE KEY-----\\n",'
-)
+EXPECTED_DER_PEM = f'"{PEM_BEGIN}\\nAA==\\n{PEM_END}\\n",'
+INVALID_PEM_LINE = f'"{PEM_BEGIN}\\nUNEXPECTED\\n{PEM_END}\\n",'
+
 
 
 def reviewed_fingerprint_line(source: list[str]) -> int:
@@ -98,6 +99,8 @@ def expected_ignore_for_source(source: list[str]) -> list[str]:
         f'{HISTORICAL_COMMIT}:{FIXTURE_PATH}:private-key:64',
         f'{FIXTURE_PATH}:private-key:{der}',
         f'{SPOTLESS_COMMIT}:{FIXTURE_PATH}:private-key:{base64}',
+        f'{GATE_SELF_SCAN_COMMIT}:{GATE_SELF_SCAN_PATH}:private-key:40',
+        f'{GATE_SELF_SCAN_COMMIT}:{GATE_SELF_SCAN_PATH}:private-key:306',
     ]
 
 
@@ -142,7 +145,11 @@ def print_safe_finding_metadata(
     """Only allowlisted, non-secret metadata; never echo report text or values."""
     for index, finding in enumerate(findings[:5], start=1):
         rule = 'private-key' if finding.get('RuleID') == 'private-key' else 'other'
-        reviewed = 'yes' if finding.get('File') == FIXTURE_PATH else 'no'
+        raw_path = finding.get('File')
+        path = raw_path if (isinstance(raw_path, str) and
+                            0 < len(raw_path) <= 240 and raw_path.isascii() and
+                            all(char.isalnum() or char in './_-' for char in raw_path)) else '-'
+        reviewed = 'yes' if raw_path == FIXTURE_PATH else 'no'
         start = finding.get('StartLine')
         start_line = start if type(start) is int and 0 < start < 1000000 else '-'
         fingerprint = finding.get('Fingerprint')
@@ -158,7 +165,7 @@ def print_safe_finding_metadata(
             commit_short = commit[:12]
         label = reviewed_finding_label(name, finding, source)
         print(f'GITLEAKS_SAFE_FINDING scan={name} index={index} '
-              f'rule={rule} reviewed_file={reviewed} '
+              f'rule={rule} file={path} reviewed_file={reviewed} '
               f'fixture={label} start_line={start_line} '
               f'fingerprint_line={fp_line} commit={commit_short}')
     if len(findings) > 5:
@@ -267,7 +274,8 @@ def self_test() -> bool:
             output = captured.getvalue()
             if 'do-not-print' in output:
                 raise AssertionError('secret leaked to gate output')
-            if ('reviewed_file=yes' not in output or
+            if (f'file={FIXTURE_PATH}' not in output or
+                    'reviewed_file=yes' not in output or
                     'fixture=-' not in output or
                     'fingerprint_line=123' not in output or
                     'commit=aaaaaaaaaaaa' not in output):
@@ -294,7 +302,7 @@ def self_test() -> bool:
             ignore.write_text('\n'.join(expected) + '\n',
                               encoding='ascii')
             pem = reviewed_fingerprint_line(lines) - 1
-            lines[pem] = '"-----BEGIN PRIVATE KEY-----\\nUNEXPECTED\\n-----END PRIVATE KEY-----\\n",'
+            lines[pem] = INVALID_PEM_LINE
             fixture.write_text('\n'.join(lines) + '\n', encoding='utf-8')
             try:
                 validate_reviewed_exception(root)
@@ -303,8 +311,8 @@ def self_test() -> bool:
                 pass
             # Both newly reviewed fixtures remain byte-for-byte pinned.
             for original, invalid in (
-                (EXPECTED_BASE64_PEM, '"-----BEGIN PRIVATE KEY-----\\nUNEXPECTED\\n-----END PRIVATE KEY-----\\n",'),
-                (EXPECTED_DER_PEM, '"-----BEGIN PRIVATE KEY-----\\nUNEXPECTED\\n-----END PRIVATE KEY-----\\n",'),
+                (EXPECTED_BASE64_PEM, INVALID_PEM_LINE),
+                (EXPECTED_DER_PEM, INVALID_PEM_LINE),
             ):
                 clean = [EXPECTED_PEM_LINE if line == lines[pem] else line
                          for line in lines]
