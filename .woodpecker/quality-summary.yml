@@ -1,11 +1,16 @@
-# AQK-5: no token or API calls. This workflow executes ONLY when every required
-# upstream workflow succeeded. On any failure, it cannot publish false success.
-# Gitea must require ALL five individual contexts, including this summary.
-labels:
-  platform: linux/arm64
-  hostname: orangepi5
+# AQK-5: aggregate ACTUAL Gitea commit statuses even when a gate fails.
+# The four upstream checks remain independently required in protected main.
+when:
+  - event: pull_request
+    branch: main
+    status: [success, failure]
+  - event: push
+    branch: main
+    status: [success, failure]
 
-skip_clone: true
+labels:
+  platform: linux/amd64
+  role: build-linux
 
 depends_on:
   - security-wake-x86
@@ -13,23 +18,8 @@ depends_on:
   - quality-tests
   - quality-coverage
 
-when:
-  - event: pull_request
-    branch: main
-  - event: push
-    branch: main
-
 steps:
   - name: consolidated-quality-summary
-    image: curlimages/curl:8.22.0
+    image: python:3.13-alpine
     commands:
-      - |
-        set -eu
-        echo '===== AQK-5 CONSOLIDATED QUALITY SUMMARY ====='
-        echo 'GATE | STATUS'
-        echo 'security-wake-x86 | SUCCESS'
-        echo 'quality-detekt | SUCCESS'
-        echo 'quality-tests | SUCCESS'
-        echo 'quality-coverage | SUCCESS'
-        echo 'CHECKS=4'
-        echo 'AQK_5_CONSOLIDATED_GATE=PASS'
+      - python3 scripts/ci/aqk5-quality-summary.py
