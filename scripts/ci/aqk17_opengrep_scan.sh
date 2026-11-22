@@ -91,6 +91,77 @@ for kind, pattern in patterns.items():
     if re.search(pattern, diagnostic_text):
         print(f"OPENGREP_STDERR_CATEGORY_{kind}=DETECTED")
 PY_DIAG
+  # A SemgrepError is too generic to identify a cause. Narrow the failure
+  # without printing source snippets, raw error messages or private paths.
+  python3 - "$report_dir/source.json" <<'PY_HINTS'
+import json
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+for label, directory in (("MAIN", "src/main/kotlin"), ("TEST", "src/test/kotlin")):
+    print(f"OPENGREP_DIAG_{label}_KOTLIN_CANDIDATES={sum(1 for _ in Path(directory).rglob('*.kt'))}")
+
+try:
+    report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    errors = report.get("errors", [])
+    if not isinstance(errors, list):
+        errors = []
+except (OSError, ValueError, UnicodeError):
+    errors = []
+
+codes = Counter(str(e["code"]) for e in errors if isinstance(e, dict) and isinstance(e.get("code"), int))
+for code, count in sorted(codes.items()):
+    print(f"OPENGREP_DIAG_ERROR_CODE_{code}={count}")
+
+# Match only fixed diagnostic categories, never publish the underlying messages.
+hints = {
+    "CONFIG": r"config|yaml|rule.*invalid|invalid.*rule",
+    "TARGETS": r"no files|no targets|not found|does not exist|path|directory|outside.*project|project root",
+    "GIT": r"git|repository|vcs",
+    "PARSING": r"parse|syntax|grammar|lexer",
+    "ENGINE": r"semgrep-core|engine|failed to run|internal|exception|assertion|fatal",
+    "RESOURCE": r"memory|timeout|too many|limit|killed|resource|oom",
+    "NETWORK": r"http|https|network|connection|dns|download",
+    "PERMISSION": r"permission|access denied",
+}
+messages = "\n".join(e.get("message", "") for e in errors if isinstance(e, dict) and isinstance(e.get("message"), str)).lower()
+for name, pattern in hints.items():
+    if re.search(pattern, messages):
+        print(f"OPENGREP_DIAG_ERROR_HINT_{name}=DETECTED")
+PY_HINTS
+
+  # Run controlled, read-only isolation scans only after the original scan
+  # failed; never treat an isolation PASS as a replacement for the full gate.
+  diagnose_target() {
+    label="$1"
+    shift
+    isolated_rc=0
+    ./.aqk17-bin/opengrep scan --config .opengrep.yml --json \
+      --output "$report_dir/isolation-$label.json" "$@" \
+      > "$report_dir/isolation-$label.out" 2> "$report_dir/isolation-$label.err" || isolated_rc=$?
+    echo "OPENGREP_DIAG_${label}_EXIT_CODE=$isolated_rc"
+    python3 - "$report_dir/isolation-$label.json" "$label" <<'PY_ISO'
+import json
+import sys
+from pathlib import Path
+
+path, label = Path(sys.argv[1]), sys.argv[2]
+try:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    scanned = report.get("paths", {}).get("scanned", [])
+    errors = report.get("errors", [])
+    print(f"OPENGREP_DIAG_{label}_SCANNED_COUNT={len(scanned) if isinstance(scanned, list) else 'INVALID'}")
+    print(f"OPENGREP_DIAG_{label}_ERRORS_COUNT={len(errors) if isinstance(errors, list) else 'INVALID'}")
+except (OSError, ValueError, UnicodeError, AttributeError):
+    print(f"OPENGREP_DIAG_{label}_JSON=INVALID_OR_MISSING")
+PY_ISO
+  }
+  diagnose_target SRC src
+  diagnose_target MAIN src/main/kotlin
+  diagnose_target TEST src/test/kotlin
+
   echo 'AQK_17_OPENGREP_SCAN_EXECUTION=FAIL' >&2
   exit "$scan_rc"
 fi
