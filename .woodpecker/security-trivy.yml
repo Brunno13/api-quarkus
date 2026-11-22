@@ -1,6 +1,5 @@
-# AQK-17: first-pass Gradle dependency inventory / vulnerability discovery.
-# Do not make this check required until the findings are classified and
-# blocking behavior has been validated.
+# AQK-17: blocking HIGH/CRITICAL vulnerabilities in locked Gradle runtime.
+# Promote to a required check only after validating the workflow in PR #21.
 when:
   - event: pull_request
     branch: main
@@ -27,7 +26,7 @@ steps:
         ./.aqk17-bin/trivy --version
         echo 'AQK_17_TRIVY_BINARY=PASS'
 
-  - name: trivy-gradle-discovery
+  - name: trivy-gradle-security-gate
     image: python:3.13-alpine
     commands:
       - sh scripts/ci/aqk17_trivy_scan.sh
