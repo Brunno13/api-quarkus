@@ -1,0 +1,6 @@
+# AQK-15 - Reviewed false positive
+# Intentional malformed PKCS8 PEM used by a negative JUnit test.
+# Marker: NOT_A_PRIVATE_KEY_12345
+# Do not ignore the private-key rule or the entire test directory.
+src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:64
+452f631eb0e00311971c947896f37159d48cfc72:src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:64

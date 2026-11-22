@@ -23,6 +23,7 @@ GATES = (
     "quality-detekt",
     "quality-tests",
     "quality-coverage",
+    "security-gitleaks",
 )
 PAGE_SIZE = 50
 MAX_PAGES = 10
