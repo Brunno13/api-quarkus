@@ -69,8 +69,34 @@ def validate_reviewed_exception(root: Path) -> None:
         raise ValueError('unexpected Gitleaks ignore fingerprints')
 
 
+def print_safe_finding_metadata(name: str, findings: list[dict]) -> None:
+    """Only allowlisted, non-secret metadata; never echo report text or values."""
+    for index, finding in enumerate(findings[:5], start=1):
+        rule = 'private-key' if finding.get('RuleID') == 'private-key' else 'other'
+        reviewed = 'yes' if finding.get('File') == FIXTURE_PATH else 'no'
+        start = finding.get('StartLine')
+        start_line = start if type(start) is int and 0 < start < 1000000 else '-'
+        fingerprint = finding.get('Fingerprint')
+        fp_line = '-'
+        if isinstance(fingerprint, str):
+            suffix = fingerprint.rsplit(':', 1)[-1]
+            if suffix.isascii() and suffix.isdecimal() and len(suffix) <= 6:
+                fp_line = int(suffix)
+        commit = finding.get('Commit')
+        commit_short = '-'
+        if (isinstance(commit, str) and len(commit) == 40
+                and all(c in '0123456789abcdefABCDEF' for c in commit)):
+            commit_short = commit[:12]
+        print(f'GITLEAKS_SAFE_FINDING scan={name} index={index} '
+              f'rule={rule} reviewed_file={reviewed} '
+              f'start_line={start_line} fingerprint_line={fp_line} '
+              f'commit={commit_short}')
+    if len(findings) > 5:
+        print(f'GITLEAKS_SAFE_FINDINGS_OMITTED={len(findings) - 5}')
+
+
 def count_findings(report_dir: Path, name: str) -> int:
-    """Validate report shape but never reproduce finding fields in logs."""
+    """Validate report shape; print only non-secret finding classifications."""
     path = report_dir / f'{name}.json'
     if not path.is_file():
         raise ValueError(f'missing {name} report')
@@ -79,6 +105,8 @@ def count_findings(report_dir: Path, name: str) -> int:
         return 0
     if not isinstance(data, list) or any(not isinstance(x, dict) for x in data):
         raise ValueError(f'invalid {name} report schema')
+    if data:
+        print_safe_finding_metadata(name, data)
     return len(data)
 
 
@@ -146,15 +174,24 @@ def self_test() -> bool:
                 if not audit(root, cleanup=False):
                     raise AssertionError('empty-reports gate failed')
 
-            current_report.write_text(
-                '[{"RuleID":"synthetic-test", "Secret":"do-not-print"}]',
-                encoding='utf-8')
+            current_report.write_text(json.dumps([{
+                'RuleID': 'private-key', 'File': FIXTURE_PATH,
+                'StartLine': 123, 'Fingerprint': f'{FIXTURE_PATH}:private-key:123',
+                'Commit': 'a' * 40, 'Secret': 'do-not-print',
+                'Match': 'secret-match-do-not-print',
+                'Message': 'secret-message-do-not-print',
+            }]), encoding='utf-8')
             captured = io.StringIO()
             with contextlib.redirect_stdout(captured):
                 if audit(root, cleanup=False):
                     raise AssertionError('current finding did not block')
-            if 'do-not-print' in captured.getvalue():
+            output = captured.getvalue()
+            if 'do-not-print' in output:
                 raise AssertionError('secret leaked to gate output')
+            if ('reviewed_file=yes' not in output or
+                    'fingerprint_line=123' not in output or
+                    'commit=aaaaaaaaaaaa' not in output):
+                raise AssertionError('safe finding metadata missing')
 
             current_report.write_text('[]', encoding='utf-8')
             history_report.write_text('[{}]', encoding='utf-8')
