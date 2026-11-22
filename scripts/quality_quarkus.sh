@@ -101,8 +101,10 @@ coverage_summary() {
 
 case "$MODE" in
   detekt)
-    echo '===== AQK-5 DETEKT ====='
-    bash ./gradlew detekt "${gradle_args[@]}"
+    # Keep the existing quality-detekt required context, now failing on either gate.
+    echo '===== AQK-16 SPOTLESS KOTLIN + DETEKT ====='
+    bash ./gradlew spotlessKotlinCheck detekt "${gradle_args[@]}"
+    echo 'SPOTLESS_KOTLIN_CHECK=PASS'
     echo 'DETEKT_BASELINE=PASS'
     ;;
   tests)
@@ -119,8 +121,9 @@ case "$MODE" in
     coverage_summary
     ;;
   all)
-    echo '===== AQK-5 FULL LOCAL CHECK ====='
-    bash ./gradlew clean check "${gradle_args[@]}"
+    echo '===== AQK-16 FULL LOCAL CHECK ====='
+    bash ./gradlew clean spotlessKotlinCheck check "${gradle_args[@]}"
+    echo 'SPOTLESS_KOTLIN_CHECK=PASS'
     test_summary
     coverage_summary
     echo 'AQK_5_CI_QUALITY_GATE=PASS'

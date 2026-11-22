@@ -1,4 +1,5 @@
-# AQK-5: independent status for Detekt Kotlin lint; no Mongo integration, publishing, native build or deploy.
+# AQK-16: existing quality-detekt status enforces Spotless Kotlin formatting and Detekt lint.
+# No Mongo integration, publishing, native build or deploy.
 labels:
   platform: linux/amd64
   role: build-linux
