@@ -1,0 +1,35 @@
+# AQK-15 / 2.16b: discovery only. No new required check until baseline and
+# PASS -> FAIL -> PASS are homologated.
+labels:
+  platform: linux/amd64
+  role: build-linux
+
+depends_on:
+  - security-wake-x86
+
+when:
+  - event: pull_request
+    branch: main
+  - event: push
+    branch: main
+
+# Woodpecker defaults may fetch only a single commit. History scanning must
+# retain every ancestor of the checked-out commit.
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      partial: false
+      depth: 0
+
+steps:
+  - name: gitleaks-discovery-scan
+    image: ghcr.io/gitleaks/gitleaks@sha256:b109bc5f8f76a38196a3e413704fc5b9e3c32360bce4e4b603bd6f45b3721dbb
+    pull: false
+    commands:
+      - sh scripts/ci/aqk15_gitleaks_scan.sh
+
+  - name: gitleaks-discovery-summary
+    image: python:3.13-alpine
+    commands:
+      - python3 scripts/ci/aqk15_gitleaks_discovery.py
