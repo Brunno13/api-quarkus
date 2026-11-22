@@ -1,5 +1,5 @@
 # AQK-5: aggregate ACTUAL Gitea commit statuses even when a gate fails.
-# All five base checks must be successful; the summary is a sixth context.
+# All seven base checks must be successful; the summary is an eighth context.
 when:
   - event: pull_request
     branch: main
@@ -18,6 +18,8 @@ depends_on:
   - quality-tests
   - quality-coverage
   - security-gitleaks
+  - security-trivy
+  - security-opengrep
 
 steps:
   - name: consolidated-quality-summary

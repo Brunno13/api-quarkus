@@ -1,0 +1,32 @@
+# AQK-17: initial Kotlin SAST rules; discovery-only until triage.
+# Explicit local rules: no automatic registry selection or SaaS dependency.
+rules:
+  - id: aqk17-kotlin-weak-message-digest
+    languages: [kotlin]
+    severity: WARNING
+    message: "Review weak MD5/SHA-1 digest; do not use for authentication or integrity security."
+    pattern-either:
+      - pattern: MessageDigest.getInstance("MD5")
+      - pattern: MessageDigest.getInstance("SHA-1")
+
+  - id: aqk17-kotlin-ecb-cipher
+    languages: [kotlin]
+    severity: WARNING
+    message: "AES/ECB leaks patterns; prefer authenticated encryption such as AES-GCM."
+    pattern-either:
+      - pattern: Cipher.getInstance("AES/ECB/PKCS5Padding")
+      - pattern: Cipher.getInstance("AES/ECB/NoPadding")
+
+  - id: aqk17-kotlin-obsolete-ssl-context
+    languages: [kotlin]
+    severity: WARNING
+    message: "Avoid obsolete SSL/TLSv1 contexts; use current TLS settings."
+    pattern-either:
+      - pattern: SSLContext.getInstance("SSL")
+      - pattern: SSLContext.getInstance("TLSv1")
+
+  - id: aqk17-kotlin-process-execution
+    languages: [kotlin]
+    severity: WARNING
+    message: "Review Runtime.exec command execution and untrusted input exposure."
+    pattern: Runtime.getRuntime().exec(...)
