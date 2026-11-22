@@ -1,6 +1,7 @@
 #!/bin/sh
-# AQK-15: discovery scans. Report data is private to this ephemeral workspace.
+# AQK-15: blocking scans. Reports are transient and must never reach logs.
 set -eu
+umask 077
 
 if [ "$(git rev-parse --is-shallow-repository)" != "false" ]; then
   echo 'GITLEAKS_FULL_HISTORY=FAIL (shallow repository)' >&2
@@ -15,7 +16,7 @@ echo "GITLEAKS_FULL_HISTORY=PASS COMMITS=$(git rev-list --count HEAD)"
 mkdir -p .aqk15-gitleaks-ci
 # Never print findings to CI stdout/stderr. A report can contain sensitive
 # metadata; do not upload or commit it.
-gitleaks dir --no-banner --redact=100 --log-level error \
+gitleaks dir --ignore-gitleaks-allow --no-banner --redact=100 --log-level error \
   --exit-code=0 --report-format=json \
   --report-path=.aqk15-gitleaks-ci/current.json . \
   > .aqk15-gitleaks-ci/current.log 2>&1 || {
@@ -24,7 +25,7 @@ gitleaks dir --no-banner --redact=100 --log-level error \
   }
 echo 'GITLEAKS_CURRENT_SCAN_EXECUTION=PASS'
 
-gitleaks git --no-banner --redact=100 --log-level error \
+gitleaks git --ignore-gitleaks-allow --no-banner --redact=100 --log-level error \
   --exit-code=0 --log-opts=HEAD --report-format=json \
   --report-path=.aqk15-gitleaks-ci/history.json . \
   > .aqk15-gitleaks-ci/history.log 2>&1 || {
