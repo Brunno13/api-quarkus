@@ -1,0 +1,36 @@
+# AQK-17: Kotlin Opengrep SAST discovery. Not required until promoted.
+when:
+  - event: pull_request
+    branch: main
+  - event: push
+    branch: main
+
+labels:
+  platform: linux/amd64
+  role: build-linux
+
+depends_on:
+  - security-wake-x86
+
+steps:
+  - name: opengrep-download-verified
+    image: curlimages/curl:8.22.0
+    commands:
+      - |
+        set -eu
+        mkdir -p .aqk17-bin
+        url='https://github.com/opengrep/opengrep/releases/download/v2.0.0/opengrep_linux_x86'
+        expected='37e93f4da5fd04a18c5c1febbdd12f7e98dfccd4d0c9cf2593bcb25eeb462da0'
+        curl --fail --location --silent --show-error \
+          --retry 2 --connect-timeout 10 --max-time 300 \
+          --output .aqk17-bin/opengrep.download "$url"
+        printf '%s  %s\n' "$expected" '.aqk17-bin/opengrep.download' | sha256sum -c -
+        mv .aqk17-bin/opengrep.download .aqk17-bin/opengrep
+        chmod 0755 .aqk17-bin/opengrep
+        echo 'AQK_17_OPENGREP_BINARY_VERIFIED=PASS'
+
+  - name: opengrep-kotlin-discovery
+    # Debian/glibc is required for the verified Linux-x86 executable.
+    image: python:3.13-slim
+    commands:
+      - sh scripts/ci/aqk17_opengrep_scan.sh
