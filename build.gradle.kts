@@ -1,7 +1,12 @@
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+
 plugins {
     kotlin("jvm") version "2.4.10"
     kotlin("plugin.allopen") version "2.4.10"
     id("io.quarkus")
+    jacoco
+    id("dev.detekt") version "2.0.0-alpha.6"
 }
 
 repositories {
@@ -34,6 +39,18 @@ dependencies {
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.quarkus:quarkus-test-security")
+    testImplementation("io.quarkus:quarkus-jacoco")
+}
+
+// AQK-5: preserve audited legacy findings; fail the build on new findings.
+detekt {
+    ignoreFailures = false
+    baseline = file("config/detekt/baseline.xml")
+}
+
+// Match the JaCoCo version used by the Quarkus 3.40 coverage extension.
+jacoco {
+    toolVersion = "0.8.15"
 }
 
 group = "br.com.brunno"
@@ -80,6 +97,57 @@ tasks.named<Test>("test") {
     useJUnitPlatform {
         excludeTags("mongodb-integration")
     }
+
+    // Keep test coverage files inside build/ so `clean` removes old data.
+    systemProperty(
+        "quarkus.jacoco.data-file",
+        layout.buildDirectory.file("jacoco-quarkus.exec").get().asFile.absolutePath
+    )
+    systemProperty(
+        "quarkus.jacoco.report-location",
+        layout.buildDirectory.dir("jacoco-report").get().asFile.absolutePath
+    )
+    systemProperty("quarkus.jacoco.reuse-data-file", "true")
+
+    // Quarkus instruments @QuarkusTest via its own classloader. The Gradle
+    // agent covers plain JUnit tests, using the same execution data file.
+    extensions.configure<JacocoTaskExtension> {
+        excludeClassLoaders = listOf("*QuarkusClassLoader")
+        destinationFile = layout.buildDirectory.file("jacoco-quarkus.exec").get().asFile
+    }
+}
+
+// Quarkus generates the combined report. Do not invoke Gradle's duplicate reporter.
+tasks.named("jacocoTestReport") {
+    enabled = false
+}
+
+// AQK-5: use the same merged execution data as the Quarkus JaCoCo report.
+// These minimums are based on the audited 2026-11-17 baseline:
+// LINE 608/807 = 75.34%; BRANCH 223/326 = 68.40%.
+tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn(tasks.named("test"))
+    executionData.setFrom(layout.buildDirectory.file("jacoco-quarkus.exec"))
+
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.75".toBigDecimal()
+            }
+            limit {
+                counter = "BRANCH"
+                value = "COVEREDRATIO"
+                minimum = "0.68".toBigDecimal()
+            }
+        }
+    }
+}
+
+// Gradle does not attach JaCoCo coverage verification to check automatically.
+tasks.named("check") {
+    dependsOn(tasks.named("jacocoTestCoverageVerification"))
 }
 
 // Explicit MongoDB integration test task.

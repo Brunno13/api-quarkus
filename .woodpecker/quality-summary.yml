@@ -1,0 +1,25 @@
+# AQK-5: aggregate ACTUAL Gitea commit statuses even when a gate fails.
+# The four upstream checks remain independently required in protected main.
+when:
+  - event: pull_request
+    branch: main
+    status: [success, failure]
+  - event: push
+    branch: main
+    status: [success, failure]
+
+labels:
+  platform: linux/amd64
+  role: build-linux
+
+depends_on:
+  - security-wake-x86
+  - quality-detekt
+  - quality-tests
+  - quality-coverage
+
+steps:
+  - name: consolidated-quality-summary
+    image: python:3.13-alpine
+    commands:
+      - python3 scripts/ci/aqk5-quality-summary.py

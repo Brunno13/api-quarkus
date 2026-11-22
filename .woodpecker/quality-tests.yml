@@ -1,0 +1,20 @@
+# AQK-5: independent status for Quarkus JUnit tests; no Mongo integration, publishing, native build or deploy.
+labels:
+  platform: linux/amd64
+  role: build-linux
+
+depends_on:
+  - security-wake-x86
+
+when:
+  - event: pull_request
+    branch: main
+  - event: push
+    branch: main
+
+steps:
+  - name: quarkus-tests
+    image: eclipse-temurin:21-jdk
+    pull: false
+    commands:
+      - bash scripts/quality_quarkus.sh tests
