@@ -22,29 +22,51 @@ FIXTURE_PATH = (
     'infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt'
 )
 HISTORICAL_COMMIT = '452f631eb0e00311971c947896f37159d48cfc72'
-EXPECTED_IGNORE = [
-    f'{FIXTURE_PATH}:private-key:64',
-    f'{HISTORICAL_COMMIT}:{FIXTURE_PATH}:private-key:64',
-]
+EXPECTED_TEST_LINE = 'fun `rejects invalid PEM base64 without exposing key material`('
 EXPECTED_MARKER_LINE = 'val marker = "NOT_A_PRIVATE_KEY_12345"'
+EXPECTED_PATH_LINE = 'val path = directory.resolve("malformed.pem")'
 EXPECTED_PEM_LINE = (
     '"-----BEGIN PRIVATE KEY-----\\n$marker\\n'
     '-----END PRIVATE KEY-----\\n",'
 )
 
 
+def reviewed_fingerprint_line(source: list[str]) -> int:
+    """Locate only the known synthetic PEM inside its original negative test."""
+    def unique_index(expected: str) -> int:
+        matches = [i for i, line in enumerate(source) if line.strip() == expected]
+        if len(matches) != 1:
+            raise ValueError('reviewed PEM fixture changed; review the exception')
+        return matches[0]
+
+    test = unique_index(EXPECTED_TEST_LINE)
+    marker = unique_index(EXPECTED_MARKER_LINE)
+    path = unique_index(EXPECTED_PATH_LINE)
+    pem = unique_index(EXPECTED_PEM_LINE)
+    next_test = next((i for i in range(test + 1, len(source))
+                      if source[i].strip() == '@Test'), len(source))
+    if not (test < marker < path < pem < next_test):
+        raise ValueError('reviewed PEM fixture changed; review the exception')
+    return pem + 1  # GitLeaks fingerprint line numbers are 1-based.
+
+
+def expected_ignore_for_source(source: list[str]) -> list[str]:
+    line = reviewed_fingerprint_line(source)
+    return [
+        f'{FIXTURE_PATH}:private-key:{line}',
+        f'{HISTORICAL_COMMIT}:{FIXTURE_PATH}:private-key:64',
+    ]
+
+
 def validate_reviewed_exception(root: Path) -> None:
-    """Fail if an exception broadens or the ignored source changes."""
+    """Fail closed unless both fingerprints match the exact reviewed fixture."""
+    source = (root / FIXTURE_PATH).read_text(encoding='utf-8').splitlines()
+    expected = expected_ignore_for_source(source)
     lines = (root / '.gitleaksignore').read_text(encoding='ascii').splitlines()
     actual = [line.strip() for line in lines
               if line.strip() and not line.lstrip().startswith('#')]
-    if actual != EXPECTED_IGNORE:
+    if actual != expected:
         raise ValueError('unexpected Gitleaks ignore fingerprints')
-
-    source = (root / FIXTURE_PATH).read_text(encoding='utf-8').splitlines()
-    if (len(source) < 64 or source[59].strip() != EXPECTED_MARKER_LINE
-            or source[63].strip() != EXPECTED_PEM_LINE):
-        raise ValueError('reviewed PEM fixture changed; review the exception')
 
 
 def count_findings(report_dir: Path, name: str) -> int:
@@ -91,12 +113,28 @@ def self_test() -> bool:
             root = Path(directory)
             fixture = root / FIXTURE_PATH
             fixture.parent.mkdir(parents=True)
-            lines = ['// fixture test'] * 64
-            lines[59] = EXPECTED_MARKER_LINE
-            lines[63] = EXPECTED_PEM_LINE
+            lines = [
+                '@Test', EXPECTED_TEST_LINE, '    @TempDir directory: Path,',
+                ') {', EXPECTED_MARKER_LINE, EXPECTED_PATH_LINE,
+                'Files.writeString(', 'path,', EXPECTED_PEM_LINE,
+                'StandardCharsets.US_ASCII,', ')', '}',
+            ]
             fixture.write_text('\n'.join(lines) + '\n', encoding='utf-8')
             ignore = root / '.gitleaksignore'
-            ignore.write_text('\n'.join(EXPECTED_IGNORE) + '\n', encoding='ascii')
+            expected = expected_ignore_for_source(lines)
+            ignore.write_text('\n'.join(expected) + '\n', encoding='ascii')
+            validate_reviewed_exception(root)
+
+            # Whitespace/formatting shifts must not require rewriting gate code.
+            lines.insert(0, '// formatter inserted a line')
+            fixture.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+            try:
+                validate_reviewed_exception(root)
+                raise AssertionError('stale fingerprint did not fail closed')
+            except ValueError:
+                pass
+            expected = expected_ignore_for_source(lines)
+            ignore.write_text('\n'.join(expected) + '\n', encoding='ascii')
             validate_reviewed_exception(root)
             reports = root / REPORT_DIR_NAME
             reports.mkdir()
@@ -129,16 +167,17 @@ def self_test() -> bool:
                     contextlib.redirect_stderr(io.StringIO()):
                 if audit(root, cleanup=False):
                     raise AssertionError('missing report did not block')
-            ignore.write_text('\n'.join(EXPECTED_IGNORE + ['*']) + '\n',
+            ignore.write_text('\n'.join(expected + ['*']) + '\n',
                               encoding='ascii')
             try:
                 validate_reviewed_exception(root)
                 raise AssertionError('broad-ignore test did not fail')
             except ValueError:
                 pass
-            ignore.write_text('\n'.join(EXPECTED_IGNORE) + '\n',
+            ignore.write_text('\n'.join(expected) + '\n',
                               encoding='ascii')
-            lines[63] = '"-----BEGIN PRIVATE KEY-----\\nUNEXPECTED\\n-----END PRIVATE KEY-----\\n",'
+            pem = reviewed_fingerprint_line(lines) - 1
+            lines[pem] = '"-----BEGIN PRIVATE KEY-----\\nUNEXPECTED\\n-----END PRIVATE KEY-----\\n",'
             fixture.write_text('\n'.join(lines) + '\n', encoding='utf-8')
             try:
                 validate_reviewed_exception(root)
