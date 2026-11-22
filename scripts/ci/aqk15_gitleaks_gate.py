@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """AQK-15: fail-closed Gitleaks policy for current files and Git history.
 
-Never print Gitleaks JSON reports: they can contain secrets. The sole exception
-is an intentionally malformed PEM fixture whose two fingerprints are checked
-against an exact, reviewed test-source location. No global rule exclusions.
+Log only non-secret finding metadata. The reviewed synthetic PEM fixtures have
+exact fingerprints checked against their test method and literal source. Full
+Gitleaks JSON reports stay in the CI workspace for troubleshooting; no global
+rule exclusions.
 """
 
 from __future__ import annotations
@@ -22,12 +23,26 @@ FIXTURE_PATH = (
     'infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt'
 )
 HISTORICAL_COMMIT = '452f631eb0e00311971c947896f37159d48cfc72'
+SPOTLESS_COMMIT = '040c6079ffaf54fe29ec30464d0bf3ffdcb24ce3'
 EXPECTED_TEST_LINE = 'fun `rejects invalid PEM base64 without exposing key material`('
 EXPECTED_MARKER_LINE = 'val marker = "NOT_A_PRIVATE_KEY_12345"'
 EXPECTED_PATH_LINE = 'val path = directory.resolve("malformed.pem")'
 EXPECTED_PEM_LINE = (
     '"-----BEGIN PRIVATE KEY-----\\n$marker\\n'
     '-----END PRIVATE KEY-----\\n",'
+)
+
+
+# Synthetic invalid-input fixtures added in 040c607, not usable private keys.
+EXPECTED_BASE64_TEST = 'fun `rejects invalid base64 inside a structurally valid PKCS8 PEM`('
+EXPECTED_BASE64_PATH = 'val path = directory.resolve("invalid-base64.pem")'
+EXPECTED_BASE64_PEM = (
+    '"-----BEGIN PRIVATE KEY-----\\nA\\n-----END PRIVATE KEY-----\\n",'
+)
+EXPECTED_DER_TEST = 'fun `rejects invalid DER after decoding a structurally valid PKCS8 PEM`('
+EXPECTED_DER_PATH = 'val path = directory.resolve("invalid-der.pem")'
+EXPECTED_DER_PEM = (
+    '"-----BEGIN PRIVATE KEY-----\\nAA==\\n-----END PRIVATE KEY-----\\n",'
 )
 
 
@@ -50,16 +65,44 @@ def reviewed_fingerprint_line(source: list[str]) -> int:
     return pem + 1  # GitLeaks fingerprint line numbers are 1-based.
 
 
+def reviewed_synthetic_line(
+    source: list[str], test_line: str, path_line: str, pem_line: str,
+) -> int:
+    """Pin one synthetic PEM to its unique negative JUnit test and file."""
+    def unique_index(value: str) -> int:
+        matches = [i for i, line in enumerate(source) if line.strip() == value]
+        if len(matches) != 1:
+            raise ValueError('synthetic PEM fixture changed; review the exception')
+        return matches[0]
+
+    test = unique_index(test_line)
+    path = unique_index(path_line)
+    pem = unique_index(pem_line)
+    next_test = next((i for i in range(test + 1, len(source))
+                      if source[i].strip() == '@Test'), len(source))
+    if not test < path < pem < next_test:
+        raise ValueError('synthetic PEM fixture changed; review the exception')
+    return pem + 1
+
+
 def expected_ignore_for_source(source: list[str]) -> list[str]:
-    line = reviewed_fingerprint_line(source)
+    marker = reviewed_fingerprint_line(source)
+    base64 = reviewed_synthetic_line(
+        source, EXPECTED_BASE64_TEST, EXPECTED_BASE64_PATH, EXPECTED_BASE64_PEM,
+    )
+    der = reviewed_synthetic_line(
+        source, EXPECTED_DER_TEST, EXPECTED_DER_PATH, EXPECTED_DER_PEM,
+    )
     return [
-        f'{FIXTURE_PATH}:private-key:{line}',
+        f'{FIXTURE_PATH}:private-key:{marker}',
         f'{HISTORICAL_COMMIT}:{FIXTURE_PATH}:private-key:64',
+        f'{FIXTURE_PATH}:private-key:{der}',
+        f'{SPOTLESS_COMMIT}:{FIXTURE_PATH}:private-key:{base64}',
     ]
 
 
 def validate_reviewed_exception(root: Path) -> None:
-    """Fail closed unless both fingerprints match the exact reviewed fixture."""
+    """Fail closed unless all fingerprints match the exact synthetic fixtures."""
     source = (root / FIXTURE_PATH).read_text(encoding='utf-8').splitlines()
     expected = expected_ignore_for_source(source)
     lines = (root / '.gitleaksignore').read_text(encoding='ascii').splitlines()
@@ -69,7 +112,33 @@ def validate_reviewed_exception(root: Path) -> None:
         raise ValueError('unexpected Gitleaks ignore fingerprints')
 
 
-def print_safe_finding_metadata(name: str, findings: list[dict]) -> None:
+def reviewed_finding_label(name: str, finding: dict, source: list[str]) -> str:
+    """Classify only known synthetic fixtures without revealing report fields."""
+    if (finding.get('File') != FIXTURE_PATH or
+            finding.get('RuleID') != 'private-key'):
+        return '-'
+    line = finding.get('StartLine')
+    commit = finding.get('Commit')
+    if name == 'current' and not commit:
+        if line == reviewed_fingerprint_line(source):
+            return 'invalid-marker'
+        if line == reviewed_synthetic_line(
+                source, EXPECTED_DER_TEST, EXPECTED_DER_PATH, EXPECTED_DER_PEM):
+            return 'invalid-der'
+        if line == reviewed_synthetic_line(
+                source, EXPECTED_BASE64_TEST, EXPECTED_BASE64_PATH,
+                EXPECTED_BASE64_PEM):
+            return 'invalid-base64'
+    if name == 'history' and commit == SPOTLESS_COMMIT and line == 93:
+        return 'invalid-base64'
+    if name == 'history' and commit == HISTORICAL_COMMIT and line == 64:
+        return 'invalid-marker'
+    return '-'
+
+
+def print_safe_finding_metadata(
+    name: str, findings: list[dict], source: list[str],
+) -> None:
     """Only allowlisted, non-secret metadata; never echo report text or values."""
     for index, finding in enumerate(findings[:5], start=1):
         rule = 'private-key' if finding.get('RuleID') == 'private-key' else 'other'
@@ -87,15 +156,16 @@ def print_safe_finding_metadata(name: str, findings: list[dict]) -> None:
         if (isinstance(commit, str) and len(commit) == 40
                 and all(c in '0123456789abcdefABCDEF' for c in commit)):
             commit_short = commit[:12]
+        label = reviewed_finding_label(name, finding, source)
         print(f'GITLEAKS_SAFE_FINDING scan={name} index={index} '
               f'rule={rule} reviewed_file={reviewed} '
-              f'start_line={start_line} fingerprint_line={fp_line} '
-              f'commit={commit_short}')
+              f'fixture={label} start_line={start_line} '
+              f'fingerprint_line={fp_line} commit={commit_short}')
     if len(findings) > 5:
         print(f'GITLEAKS_SAFE_FINDINGS_OMITTED={len(findings) - 5}')
 
 
-def count_findings(report_dir: Path, name: str) -> int:
+def count_findings(report_dir: Path, name: str, source: list[str]) -> int:
     """Validate report shape; print only non-secret finding classifications."""
     path = report_dir / f'{name}.json'
     if not path.is_file():
@@ -106,17 +176,18 @@ def count_findings(report_dir: Path, name: str) -> int:
     if not isinstance(data, list) or any(not isinstance(x, dict) for x in data):
         raise ValueError(f'invalid {name} report schema')
     if data:
-        print_safe_finding_metadata(name, data)
+        print_safe_finding_metadata(name, data, source)
     return len(data)
 
 
-def audit(root: Path, *, cleanup: bool = True) -> bool:
+def audit(root: Path, *, cleanup: bool = False) -> bool:
     reports = root / REPORT_DIR_NAME
     try:
         validate_reviewed_exception(root)
         print('GITLEAKS_EXCEPTION_POLICY=PASS')
-        current = count_findings(reports, 'current')
-        history = count_findings(reports, 'history')
+        source = (root / FIXTURE_PATH).read_text(encoding='utf-8').splitlines()
+        current = count_findings(reports, 'current', source)
+        history = count_findings(reports, 'history', source)
         print('===== AQK-15 GITLEAKS BLOCKING GATE =====')
         print('GITLEAKS_VERSION=8.30.1')
         print(f'CURRENT_FINDINGS={current}')
@@ -132,6 +203,8 @@ def audit(root: Path, *, cleanup: bool = True) -> bool:
     finally:
         if cleanup:
             shutil.rmtree(reports, ignore_errors=True)
+        elif reports.is_dir():
+            print(f'GITLEAKS_REPORT_DIR_RETAINED={REPORT_DIR_NAME}')
 
 
 def self_test() -> bool:
@@ -146,6 +219,12 @@ def self_test() -> bool:
                 ') {', EXPECTED_MARKER_LINE, EXPECTED_PATH_LINE,
                 'Files.writeString(', 'path,', EXPECTED_PEM_LINE,
                 'StandardCharsets.US_ASCII,', ')', '}',
+                '@Test', EXPECTED_BASE64_TEST,
+                EXPECTED_BASE64_PATH, 'Files.writeString(', 'path,',
+                EXPECTED_BASE64_PEM, 'StandardCharsets.US_ASCII,', ')', '}',
+                '@Test', EXPECTED_DER_TEST,
+                EXPECTED_DER_PATH, 'Files.writeString(', 'path,',
+                EXPECTED_DER_PEM, 'StandardCharsets.US_ASCII,', ')', '}',
             ]
             fixture.write_text('\n'.join(lines) + '\n', encoding='utf-8')
             ignore = root / '.gitleaksignore'
@@ -189,6 +268,7 @@ def self_test() -> bool:
             if 'do-not-print' in output:
                 raise AssertionError('secret leaked to gate output')
             if ('reviewed_file=yes' not in output or
+                    'fixture=-' not in output or
                     'fingerprint_line=123' not in output or
                     'commit=aaaaaaaaaaaa' not in output):
                 raise AssertionError('safe finding metadata missing')
@@ -221,6 +301,34 @@ def self_test() -> bool:
                 raise AssertionError('altered-fixture test did not fail')
             except ValueError:
                 pass
+            # Both newly reviewed fixtures remain byte-for-byte pinned.
+            for original, invalid in (
+                (EXPECTED_BASE64_PEM, '"-----BEGIN PRIVATE KEY-----\\nUNEXPECTED\\n-----END PRIVATE KEY-----\\n",'),
+                (EXPECTED_DER_PEM, '"-----BEGIN PRIVATE KEY-----\\nUNEXPECTED\\n-----END PRIVATE KEY-----\\n",'),
+            ):
+                clean = [EXPECTED_PEM_LINE if line == lines[pem] else line
+                         for line in lines]
+                mutated = [invalid if line == original else line for line in clean]
+                fixture.write_text('\n'.join(mutated) + '\n', encoding='utf-8')
+                try:
+                    validate_reviewed_exception(root)
+                    raise AssertionError('modified synthetic fixture accepted')
+                except ValueError:
+                    pass
+            # Restore and check classification of the two actual regressions.
+            clean = [EXPECTED_PEM_LINE if line == lines[pem] else line
+                     for line in lines]
+            fixture.write_text('\n'.join(clean) + '\n', encoding='utf-8')
+            validate_reviewed_exception(root)
+            for scan, line, commit, expected_label in (
+                ('current', reviewed_synthetic_line(clean, EXPECTED_DER_TEST,
+                     EXPECTED_DER_PATH, EXPECTED_DER_PEM), '', 'invalid-der'),
+                ('history', 93, SPOTLESS_COMMIT, 'invalid-base64'),
+            ):
+                finding = {'File': FIXTURE_PATH, 'RuleID': 'private-key',
+                           'StartLine': line, 'Commit': commit}
+                if reviewed_finding_label(scan, finding, clean) != expected_label:
+                    raise AssertionError('fixture classification failed')
         print('AQK_15_GITLEAKS_SELFTEST=PASS')
         return True
     except (OSError, ValueError, AssertionError) as error:
