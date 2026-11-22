@@ -1,5 +1,4 @@
-# AQK-5: infrastructure-only wake job. No Docker/Gradle/Mongo here.
-# The endpoint URL is configured outside Git in Woodpecker (URL only, no token).
+# AQK-5: infrastructure-only wake job; reuse the homologated Energy Manager endpoint.
 labels:
   platform: linux/arm64
   hostname: orangepi5
@@ -18,24 +17,30 @@ when:
 steps:
   - name: wake-docker-x86
     image: curlimages/curl:8.22.0
-    environment:
-      CI_WAKE_DOCKER_X86_URL:
-        from_secret: aqk_ci_wake_docker_x86_url
     commands:
       - |
         set -eu
-        if [ -z "$${CI_WAKE_DOCKER_X86_URL:-}" ]; then
-          echo 'SECURITY_WAKE_X86=FAIL (wake URL not configured)'
-          exit 1
-        fi
-        response="$$(curl --fail --silent --show-error --max-time 120 \
-          --request POST "$$CI_WAKE_DOCKER_X86_URL")"
-        case "$$response" in
-          *trigger_complete*|*already_in_progress*)
-            echo 'SECURITY_WAKE_X86=PASS'
+        trap 'rc=$?; if [ "$rc" -eq 0 ]; then echo "SECURITY_WAKE_X86_SUMMARY=PASS"; else echo "SECURITY_WAKE_X86_SUMMARY=FAIL RC=$rc"; fi' EXIT
+
+        echo "===== WAKE VM104 ====="
+
+        RESPONSE="$(
+          curl \
+            -fsS \
+            --connect-timeout 5 \
+            --max-time 180 \
+            -X POST \
+            https://energy-manager.brunnoserver.duckdns.org/cgi-bin/ci-wake-docker-x86
+        )"
+
+        printf '%s\n' "$RESPONSE"
+
+        case "$RESPONSE" in
+          *"RESULT=trigger_complete"*|*"RESULT=already_in_progress"*)
+            echo "SECURITY_WAKE_X86=PASS"
             ;;
           *)
-            echo 'SECURITY_WAKE_X86=FAIL (unexpected response)'
+            echo "SECURITY_WAKE_X86=FAIL"
             exit 1
             ;;
         esac
