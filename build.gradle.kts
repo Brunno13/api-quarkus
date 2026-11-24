@@ -41,6 +41,7 @@ dependencies {
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.quarkus:quarkus-test-security")
     testImplementation("io.quarkus:quarkus-jacoco")
+    testImplementation("com.tngtech.archunit:archunit:1.5.1")
 }
 
 // AQK-5: preserve audited legacy findings; fail the build on new findings.
