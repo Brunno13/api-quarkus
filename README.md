@@ -2,7 +2,9 @@
 
 Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Designed to be forked into independent production projects, with a feature-first modular monolith, clear architecture boundaries, environment-based configuration, and an incremental quality and security strategy.
 
-> **Current stage (November 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**. The ADMIN-protected users API, BCrypt (cost 12), MongoDB repositories, migrations V001/V002, and one-time first-ADMIN bootstrap are implemented. Production `POST /auth/login` verifies persisted credentials, issues RS256 Bearer tokens, and now enforces **MongoDB-backed fixed-window rate limiting** by normalized identity and network origin (`429` with `Retry-After`); the `dev`/`test` mock remains separate. The phase 2.14 baseline passed **150 standard tests** and **seven dedicated MongoDB bootstrap integration tests**. On **2026-11-16**, the phase 2.15 `clean check` and `quarkusBuild` passed, as did separate private-network HTTP E2E tests for login, JWT/RBAC, `401`/`429`, HMAC/TTL counters and audited deletion of both disposable databases. The latest rate-limit MongoDB JUnit integration suite is separate from the default `check`. The older ARM64 Native Image smoke tests remain valid for the foundation, but Native Image has **not** been rebuilt with the latest authentication features. Managed key rotation, recovery/refresh/revocation, CI security gates, and production deployment remain pending.
+> **Current stage (November 2026):** Foundation validated on **Gradle 9.8.1**, **Quarkus 3.40.1 LTS**, **Kotlin 2.4.10**, and **Java 21**. The ADMIN-protected users API, BCrypt (cost 12), MongoDB repositories, migrations V001/V002, and one-time first-ADMIN bootstrap are implemented. Production `POST /auth/login` verifies persisted credentials, issues RS256 Bearer tokens, and now enforces **MongoDB-backed fixed-window rate limiting** by normalized identity and network origin (`429` with `Retry-After`); the `dev`/`test` mock remains separate. The phase 2.14 baseline passed **150 standard tests** and **seven dedicated MongoDB bootstrap integration tests**. On **2026-11-16**, the phase 2.15 `clean check` and `quarkusBuild` passed, as did separate private-network HTTP E2E tests for login, JWT/RBAC, `401`/`429`, HMAC/TTL counters and audited deletion of both disposable databases. The latest rate-limit MongoDB JUnit integration suite is separate from the default `check`. The older ARM64 Native Image smoke tests remain valid for the foundation, but Native Image has **not** been rebuilt with the latest authentication features. Managed key rotation, recovery/refresh/revocation, and production deployment remain pending.
+>
+> **AQK-16 quality milestone (2026-11-24):** The self-hosted Woodpecker pull-request pipeline now enforces **eight required checks** (seven independent workflows plus a consolidated result): Spotless/ktlint, Detekt, ArchUnit, PMD CPD, JaCoCo coverage, Gitleaks, OpenGrep, and Trivy. The restored branch at `223eccc` passed all eight checks after controlled positive/negative/positive regression tests. These are **PR quality and security checks**, not an automated Native Image release or deployment pipeline.
 
 ---
 
@@ -19,8 +21,8 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 - **Development Bootstrap:** Local Quarkus dev mode and current unit/API tests run without requiring Docker or a database.
 - **Authentication:** Profile-limited mock (`dev`/`test`); persisted MongoDB + BCrypt login in `prod`; RS256 JWT issuance/verification with matching external RSA keys, bounded access-token lifetime, and RBAC. Key rotation, refresh, revocation, and session controls remain planned.
 - **Production Login Rate Limiting:** Shared MongoDB fixed-window quotas per normalized e-mail and network origin, HMAC-SHA256 pseudonymous keys, TTL cleanup, fail-closed admission and generic HTTP `429` / `Retry-After`.
-- **Quality-First Direction:** Database-independent `gradle check` and an explicitly invoked MongoDB integration test; Detekt, coverage, CPD, Gitleaks, Opengrep, and Trivy remain planned gates.
-- **Portable Delivery:** Validated Native Image for `linux/arm64` in a JVM-free OCI runtime. Automated Woodpecker delivery and native `linux/amd64` builds are planned for later phases.
+- **Enforced PR Quality & Security:** Self-hosted Woodpecker required checks for Spotless/ktlint, Detekt, ArchUnit architecture tests, JaCoCo line/branch coverage, PMD CPD Kotlin duplication, Gitleaks secret scanning, OpenGrep SAST, Trivy, and a fail-closed consolidated status. Standard `check` remains database-independent.
+- **Portable Delivery:** Validated Native Image for `linux/arm64` in a JVM-free OCI runtime. Automated image publication, release/deployment workflows, and native `linux/amd64` builds remain planned; the Woodpecker PR quality/security pipelines are already operational.
 
 ---
 
@@ -28,6 +30,7 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 
 ### ✅ Completed (validated checkpoints)
 
+- [x] **AQK-16 — enforced quality, architecture, and security gates (2026-11-24):** Eight required Woodpecker PR status contexts (seven independent checks plus `quality-summary`) passed at restored commit `223eccc`. Added Spotless 8.10.4 / ktlint 1.8.0, seven ArchUnit 1.5.1 rules (`ARCH000`–`ARCH006`), PMD CPD 7.29.0 blocking Kotlin production duplications at **60 tokens** (73 files in the validated baseline), JaCoCo verification (**LINE ≥75%, BRANCH ≥68%**), and the existing Detekt/Gitleaks/OpenGrep/Trivy gates. Controlled regressions demonstrated blocking and recovery; temporary failure fixtures were reverted. The MongoDB integration suites and Native Image/release paths remain separate.
 - [x] **Phase 2.15 — production login rate limiting:** admission before BCrypt/JWT, configurable independent identity/origin quotas, shared atomic MongoDB counters with a TTL index and externally supplied HMAC-SHA256 key, generic `429` with `Retry-After`, and fail-closed store failures. Private Docker/MongoDB HTTP E2E validated both negative attempts and a real bootstrapped ADMIN login (200), JWT RS256 and RBAC, invalid password (401), identity/origin blocking (429), HMAC/TTL counter shape and audited cleanup of both disposable databases. `clean check`, `quarkusBuild` and whitespace validation passed on **2026-11-16**; tagged MongoDB JUnit tests remain a separate task.
 - [x] Implemented and validated a one-time first-ADMIN CLI: explicit database confirmation, hidden password input, `prod` profile, HTTP-disabled command-mode artifact, and permanent MongoDB `_id` reservation with journal-acknowledged credential storage. **150/150** standard tests and **7/7** dedicated MongoDB bootstrap integration tests passed. Separate disposable-container E2E validated creation of the ADMIN, rejection of a second attempt without data changes, persisted ADMIN login (200), RS256 JWT signature and ADMIN authorization (200), rejected missing token and bad password (401), and audited database cleanup.
 - [x] Implemented real `prod` `POST /auth/login`: normalized e-mail lookup, persisted BCrypt credential verification, RS256 signing (`sub` UUID / `groups` roles), external PKCS#8 private/public PEM matching, CDI startup validation and generic 401 for invalid credentials. `dev`/`test` retain their isolated mock.
@@ -59,11 +62,11 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 - [ ] Implement credential recovery and a stronger password policy; the one-time first-ADMIN bootstrap and production login are now implemented. A consumed bootstrap reservation requires explicit administrative recovery if any later write fails.
 - [ ] Establish secure production MongoDB configuration and extend persistence coverage as new use cases require it (including update/delete if added).
 - [ ] Validate repository CRUD through the deployed Native Image and on the physical ARM64 target.
-- [ ] Integrate **Detekt** (required), business coverage, CPD, Gitleaks, Opengrep, Trivy, and architecture checks; establish measured baselines and verify failing paths.
+- [ ] Maintain and periodically review the enforced PR quality/security baselines, thresholds, scanner versions, and exception policies as the starter grows; add focused regression tests when a gate changes.
 - [ ] Centralize template identity and introduce repeatable fork configuration (`--check` / `--apply`).
 - [ ] Complete remaining authentication hardening: operational access-token expiry/audience policy, refresh-token rotation, revocation/logout, session controls, abuse monitoring, and additional negative security tests. Login rate limiting is implemented; issued tokens already have a configurable bounded TTL.
 - [ ] Establish stable rate-limit HMAC secret provisioning/rotation across replicas and explicitly validate trusted-proxy client-IP configuration in the intended deployment topology.
-- [ ] Implement self-hosted Woodpecker pipelines, target-platform OCI image publication, and deploy smoke tests.
+- [ ] Extend the existing self-hosted Woodpecker PR pipelines with target-platform OCI image publication, release automation, and deploy smoke tests.
 - [ ] Harden readiness, logging, observability, and production configuration.
 - [ ] Add native **Linux x86-64 (`linux/amd64`)** build and runtime validation in the final delivery phases; ARM64 remains the currently validated native target.
 
@@ -80,10 +83,10 @@ Reusable **Kotlin + Quarkus REST API starter** for mobile and web backends. Desi
 | Authentication | Profile-scoped mock, persisted login, first-ADMIN CLI, BCrypt, SmallRye JWT Verify / Build, RBAC | RS256 issuance and external-key startup checks validated; one-time ADMIN bootstrap and persisted ADMIN login E2E PASS; managed key rotation/recovery pending |
 | Login protection | MongoDB fixed-window rate limiting, atomic counters, TTL, HMAC-SHA256, HTTP 429 | Production HTTP negative/positive E2E PASS in isolated MongoDB; operational proxy/key management pending |
 | Observability | SmallRye Health, JSON logging | Basic setup; hardening pending |
-| Testing | JUnit 5, Quarkus Test, REST Assured, test-security | Phase 2.14: **150/150** standard tests and **7/7** bootstrap MongoDB tests PASS; phase 2.15: `clean check`, `quarkusBuild` and private HTTP E2E PASS; rate-limit MongoDB JUnit tests excluded from default `check` |
-| Quality & Security | **Detekt required**; PMD CPD, Gitleaks, Opengrep, Trivy, coverage | Tool integration pending; Gradle `check` PASS |
+| Testing | JUnit 5, Quarkus Test, REST Assured, test-security, ArchUnit 1.5.1, JaCoCo | AQK-16 database-independent `clean check` PASS with architecture and coverage verification; dedicated MongoDB suites remain separate. Historical phase 2.14: **150/150** standard tests and **7/7** bootstrap MongoDB tests PASS |
+| Quality & Security | Spotless 8.10.4 / ktlint 1.8.0, Detekt, ArchUnit, PMD CPD 7.29.0, JaCoCo, Gitleaks, OpenGrep, Trivy | Enforced in existing Woodpecker PR checks; eight required contexts PASS at `223eccc` |
 | Native Image | Mandrel / GraalVM 25; Quarkus UBI9 Micro | Linux ARM64 build and JVM-free container tested; native x86-64 planned |
-| CI/CD & Delivery | Woodpecker CI, Docker / OCI | ARM64 Dockerfile validated; automated CI, publication, deploy pending |
+| CI/CD & Delivery | Self-hosted Woodpecker CI, Docker / OCI | PR quality/security and consolidated checks operational; ARM64 Dockerfile validated; image publication, release and deployment automation pending |
 
 Version numbers are declared in the Gradle wrapper, plugins, and Quarkus platform properties; those files remain the source of truth for future forks.
 
@@ -134,7 +137,7 @@ src/main/docker/
 
 The `users` feature implements application use cases and ADMIN-protected `GET /users/{id}`, `POST /users`, and `PUT /users/{id}/credentials`. The user API is enabled when `app.persistence.mongodb.enabled=true`; regular development defaults do not expose it without that configuration. The isolated HTTP test profile enables the API with an alternative repository, without MongoDB. `POST /auth/login` is a non-functional mock in `dev`/`test` and a separate persisted-credential/JWT resource in `prod`. Other routes include `/status`. Update/delete user endpoints are not implemented.
 
-Architecture enforcement is a **planned quality gate**, not an existing check.
+**Architecture enforcement is active:** `src/test/kotlin/br/com/brunno/architecture/ArchitectureRulesTest.kt` uses **ArchUnit 1.5.1** with seven JUnit checks (`ARCH000`–`ARCH006`) run by `test` / `check` and therefore by Woodpecker `quality-tests` and `quality-coverage`. These cover required package presence, inward-only domain/application dependencies, isolation from frameworks and persistence, and feature/shared boundaries. Deliberate exceptions preserve the current `auth` → `users.domain` / selected `users.application` contracts and shared exception mappers, without allowing adapter leakage. A controlled domain-framework dependency was rejected by `ARCH002` during CI regression testing; the negative fixture was reverted.
 
 ---
 
@@ -301,7 +304,7 @@ JUnit 5 tests cover the `LoginUseCase` directly, without HTTP, CDI, Docker, or a
 .\gradlew.bat clean check --console=plain
 ```
 
-**Validated original baseline: 4 unit tests passing.** Additional tests cover persisted credential verification, redaction, login orchestration, RS256 token issuance, external-key loading, REST response mapping and rate-limit contracts/settings/admission/HMAC/mapping. The **phase 2.14 database-independent `clean check` passed 150/150 tests**. The expanded **phase 2.15 `clean check` and `quarkusBuild` passed on 2026-11-16**; that console run did not report a per-test count.
+**Validated original baseline: 4 unit tests passing.** Additional tests cover persisted credential verification, redaction, login orchestration, RS256 token issuance, external-key loading, REST response mapping and rate-limit contracts/settings/admission/HMAC/mapping. The **phase 2.14 database-independent `clean check` passed 150/150 tests**. The expanded **phase 2.15 `clean check` and `quarkusBuild` passed on 2026-11-16**; that console run did not report a per-test count. **AQK-16 (2026-11-24):** `clean spotlessKotlinCheck check` passed locally and the restored PR passed all required Woodpecker checks, including ArchUnit and JaCoCo verification; no new current test count is claimed here.
 
 ### API & Integration Tests
 
@@ -338,16 +341,60 @@ User e-mails are normalized (trim + `Locale.ROOT` lowercase). The migration `db/
 
 ### Coverage & Quality Gates
 
-The intended toolchain is **Detekt** (required for Kotlin), **PMD CPD** (duplication), **Gitleaks** (secrets and Git history), **Opengrep** (SAST), **Trivy** (dependencies and images), and a coverage reporter (JaCoCo or Kover, to be selected). The database-independent Gradle `check`, bootstrap's seven-test MongoDB integration suite, and earlier repository integration suites have passed; scanner and coverage integration is pending.
+**AQK-16 status (2026-11-24): implemented and enforced on pull requests.** The self-hosted Woodpecker CI exposes **seven independent required contexts**, plus `quality-summary`, which checks their completion and fails if any is unsuccessful. The restored commit `223eccc` passed all **8/8 required contexts**; the negative tests were intentionally committed and reverted to verify that regressions are blocked without leaving test fixtures in production code.
 
-Quality policy:
+| Required PR workflow | Enforced responsibility |
+|---|---|
+| `security-wake-x86` | Build-runner availability prerequisite for the self-hosted CI. |
+| `quality-detekt` | **Spotless 8.10.4 / ktlint 1.8.0** formatting, **Detekt** static analysis, and **PMD CPD 7.29.0** Kotlin duplication gate. |
+| `quality-tests` | Database-independent JUnit / Quarkus tests, including seven **ArchUnit 1.5.1** architecture checks (`ARCH000`–`ARCH006`). |
+| `quality-coverage` | Independent test execution and **JaCoCo** verification: **LINE ≥75%** and **BRANCH ≥68%**. |
+| `security-gitleaks` | Secret detection, including repository-history inspection and reviewed existing findings policy. |
+| `security-opengrep` | Static application security analysis (SAST). |
+| `security-trivy` | Trivy security/vulnerability scan. |
+| `quality-summary` | Consolidates the seven individual statuses; **all seven must be `SUCCESS`**. |
+
+The consolidated output for the restored branch was `CHECKS=7`, `PASSED=7`, `FAILED_OR_NOT_SUCCESSFUL=0`, `AQK_5_CONSOLIDATED_GATE=PASS`. No additional required PR check was introduced for AQK-16: Spotless and CPD run inside the existing `quality-detekt` workflow, and ArchUnit runs inside the existing test workflows.
+
+#### Local quality commands
+
+Run the complete database-independent checks (including Detekt, ArchUnit, JaCoCo verification, and PMD CPD):
+
+```bash
+./gradlew clean spotlessKotlinCheck check --console=plain
+```
+
+```powershell
+.\gradlew.bat clean spotlessKotlinCheck check --console=plain
+```
+
+Additional targeted commands (Linux/macOS; on Windows replace `./gradlew` with `.\gradlew.bat`):
+
+```bash
+./gradlew spotlessKotlinCheck detekt --console=plain   # formatting + Detekt
+./gradlew aqk16CpdKotlin --console=plain                # PMD CPD only
+./gradlew test --tests '*ArchitectureRulesTest' --console=plain
+./gradlew jacocoTestCoverageVerification --console=plain
+bash scripts/quality_quarkus.sh all                    # CI-style summary on bash
+bash scripts/quality_quarkus.sh detekt                 # existing static-quality workflow
+```
+
+`check` depends on `aqk16CpdKotlin` and runs the repository's verification tasks, but it does **not** execute the dedicated MongoDB integration suites, private-network HTTP E2E smoke tests, or Native Image builds. The external Gitleaks/OpenGrep/Trivy gates are separate Woodpecker workflows, not Gradle `check` tasks.
+
+#### Kotlin duplication policy
+
+PMD CPD analyzes every `*.kt` under `src/main/kotlin`, using **60 consecutive tokens**, without ignoring identifier or literal differences. The Gradle task checks that the XML report covers the expected production Kotlin files, fails on lexical/analysis errors, and fails if any duplication group is reported. The validated restored baseline scanned **73 files**, found **0 duplication groups**, and reported **0 analysis errors**. The report is written to `build/reports/aqk16-cpd/cpd-60.xml`; CPD XML can contain source fragments, so do not publish it indiscriminately.
+
+#### Validation and regression policy
 
 ```text
 measure → review findings → fix real issues → establish baseline
         → validate positive and negative paths → block regressions
 ```
 
-Coverage and duplication thresholds will be set from real measurements, not arbitrary percentages. Detekt and external security/coverage gates are **not** marked as implemented yet.
+The AQK-16 regression cycle demonstrated **PASS → FAIL → PASS** for formatting/architecture/duplication enforcement. Specifically, the PMD negative commit `e496f93` introduced two temporary production Kotlin fixtures: Spotless and Detekt passed, CPD detected one duplication group and failed `quality-detekt`, and `quality-summary` failed as required. The extra classes also affected the coverage gate during this controlled test. Commit `223eccc` reverted both fixtures; **all seven independent workflows and the consolidated check returned to `SUCCESS`**. A failing test commit is retained only in Git history, not in the restored source tree.
+
+Security scanning is a gate, not a substitute for production secret management, runtime hardening, deployments, or the dedicated MongoDB integration suites.
 
 ---
 
@@ -417,24 +464,27 @@ The packaged ARM64 image started in a minimal UBI Micro container and returned `
 
 ## ⚙️ CI/CD & Containerization
 
-Woodpecker CI is the intended self-hosted pipeline orchestrator:
+**PR quality and security CI is operational.** The self-hosted Woodpecker workflows in `.woodpecker/` run independent checks on the build infrastructure and publish required status contexts back to Gitea. The `quality-summary` workflow consolidates the seven individual results and blocks a pull request when any is unsuccessful. The most recent AQK-16 restoration was validated with **8/8 required checks successful**.
 
 ```text
-Push / Pull Request / Tag
-          │
-          ▼
-Dedicated build runner
-  ├── Compile / test / coverage
-  ├── Quality and security scans
-  ├── Prepare Java 21 artifacts for Native Image
-  ├── Compile linux/arm64 with Mandrel 25
-  └── Build and publish target-platform OCI image
-          │
-          ▼
-Target runtime host / container platform
+Gitea pull request
+       │
+       ▼
+Woodpecker (self-hosted build infrastructure)
+       ├── security-wake-x86
+       ├── quality-detekt   (Spotless + Detekt + PMD CPD)
+       ├── quality-tests    (JUnit / Quarkus + ArchUnit)
+       ├── quality-coverage (JaCoCo)
+       ├── security-gitleaks
+       ├── security-opengrep
+       ├── security-trivy
+       └── quality-summary  (requires 7/7 SUCCESS)
+       │
+       ▼
+Gitea required checks / merge review
 ```
 
-Compilation and scanning must run on **build runners**, not production runtime nodes. The primary ARM64 deployment model uses a native executable with **no JVM/JRE on the runtime host**. The ARM64 Dockerfile is validated; automated pipelines, image publication, native x86-64 builds, and physical-host deployment remain pending.
+The production release path is **not** yet automated. Target-platform OCI image publication, a fresh ARM64 Native Image build with the newest authentication features, native x86-64 compilation, deployment and runtime smoke tests remain future work. Compilation and scanning belong on build runners, not runtime nodes. The existing ARM64 Dockerfile and earlier JVM-free Native Image runtime smoke tests remain independently validated foundation milestones; they do not mean the current application is production-deployed.
 
 ---
 
@@ -459,4 +509,4 @@ Compilation and scanning must run on **build runners**, not production runtime n
 
 ---
 
-This repository is a reusable backend foundation. The users REST API, persisted production login, external-key RS256 issuance/verification, and **phase 2.15 MongoDB-backed login rate limiting** passed the latest database-independent build gates and private HTTP E2E checks. The phase 2.14 baseline of **150 standard tests** remains historical; tagged MongoDB JUnit integration tests are separate. The earlier ARM64 Native Image smoke test remains a foundation milestone; native rebuild with updated authentication, native x86-64 delivery, managed secrets/rotation, automated security gates, and release/deploy automation remain future work.
+This repository is a reusable backend foundation. The users REST API, persisted production login, external-key RS256 issuance/verification, and **phase 2.15 MongoDB-backed login rate limiting** passed the latest database-independent build gates and private HTTP E2E checks. The phase 2.14 baseline of **150 standard tests** remains historical; tagged MongoDB JUnit integration tests are separate. The **AQK-16 required PR quality/security gates** (Spotless, Detekt, ArchUnit, PMD CPD, JaCoCo, Gitleaks, OpenGrep, Trivy, and consolidated status) passed at `223eccc` after controlled negative testing and restoration. The earlier ARM64 Native Image smoke test remains a foundation milestone; native rebuild with updated authentication, native x86-64 delivery, managed secrets/rotation, and release/deploy automation remain future work.
