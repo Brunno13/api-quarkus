@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class BcryptPasswordHasherTest {
-
     private val hasher = BcryptPasswordHasher()
 
     @Test
@@ -50,7 +49,7 @@ class BcryptPasswordHasherTest {
         }
 
         assertFalse(
-            hasher.verify(password, hasher.hash("Valid-Password"))
+            hasher.verify(password, hasher.hash("Valid-Password")),
         )
     }
 
@@ -59,15 +58,15 @@ class BcryptPasswordHasherTest {
         val password = "Valid-Password"
 
         assertFalse(
-            hasher.verify(password, "not-a-bcrypt-hash")
+            hasher.verify(password, "not-a-bcrypt-hash"),
         )
 
         assertFalse(
-            hasher.verify(password, "")
+            hasher.verify(password, ""),
         )
 
         assertFalse(
-            hasher.verify(password, "\$2a\$12\$invalid")
+            hasher.verify(password, "\$2a\$12\$invalid"),
         )
     }
 }

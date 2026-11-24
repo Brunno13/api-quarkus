@@ -1,6 +1,13 @@
 # AQK-15 - Reviewed false positive
-# Intentional malformed PKCS8 PEM used by a negative JUnit test.
+# Intentional malformed PKCS8 PEM used by negative JUnit tests.
 # Marker: NOT_A_PRIVATE_KEY_12345
 # Do not ignore the private-key rule or the entire test directory.
-src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:64
+src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:75
 452f631eb0e00311971c947896f37159d48cfc72:src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:64
+# AQK-16: synthetically invalid DER in current tree; invalid Base64 in Spotless commit.
+src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:108
+040c6079ffaf54fe29ec30464d0bf3ffdcb24ce3:src/test/kotlin/br/com/brunno/features/auth/infrastructure/Pkcs8RsaPrivateKeyLoaderTest.kt:private-key:93
+# AQK-16: two self-scan test literals in the previously reviewed gate commit.
+# These are exact history-only fingerprints, never a path-wide allowlist.
+7d125ce274a885606579a2cad1c005e134daab93:scripts/ci/aqk15_gitleaks_gate.py:private-key:40
+7d125ce274a885606579a2cad1c005e134daab93:scripts/ci/aqk15_gitleaks_gate.py:private-key:306

@@ -8,16 +8,16 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class UserCredentialTest {
-
     @Test
     fun `credential references user by UUID`() {
         val userId = UUID.randomUUID()
         val hash = "stored-hash-for-test-only"
 
-        val credential = UserCredential(
-            userId = userId,
-            passwordHash = hash
-        )
+        val credential =
+            UserCredential(
+                userId = userId,
+                passwordHash = hash,
+            )
 
         assertEquals(userId, credential.userId)
         assertEquals(hash, credential.passwordHash)
@@ -38,10 +38,11 @@ class UserCredentialTest {
     fun `credential string representation never exposes hash`() {
         val hash = "sensitive-stored-hash"
 
-        val credential = UserCredential(
-            userId = UUID.randomUUID(),
-            passwordHash = hash
-        )
+        val credential =
+            UserCredential(
+                userId = UUID.randomUUID(),
+                passwordHash = hash,
+            )
 
         val representation = credential.toString()
 

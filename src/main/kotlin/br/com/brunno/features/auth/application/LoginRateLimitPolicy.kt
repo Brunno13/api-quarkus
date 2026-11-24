@@ -7,7 +7,7 @@ package br.com.brunno.features.auth.application
  */
 data class LoginRateLimitQuota(
     val maxAttempts: Int,
-    val windowSeconds: Long
+    val windowSeconds: Long,
 ) {
     init {
         require(maxAttempts > 0) { "maxAttempts must be positive" }
@@ -20,5 +20,5 @@ data class LoginRateLimitQuota(
 /** Independent quotas for an identity and an originating client address. */
 data class LoginRateLimitPolicy(
     val perIdentity: LoginRateLimitQuota,
-    val perOrigin: LoginRateLimitQuota
+    val perOrigin: LoginRateLimitQuota,
 )

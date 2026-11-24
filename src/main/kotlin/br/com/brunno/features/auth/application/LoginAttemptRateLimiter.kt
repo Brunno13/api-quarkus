@@ -5,7 +5,9 @@ sealed interface LoginAttemptDecision {
     data object Allowed : LoginAttemptDecision
 
     /** Strictly positive number of seconds to send as the HTTP Retry-After value. */
-    data class Rejected(val retryAfterSeconds: Long) : LoginAttemptDecision {
+    data class Rejected(
+        val retryAfterSeconds: Long,
+    ) : LoginAttemptDecision {
         init {
             require(retryAfterSeconds > 0) { "retryAfterSeconds must be positive" }
         }
@@ -29,5 +31,8 @@ sealed interface LoginAttemptDecision {
  * The production implementation is supplied by a CDI producer in the prod profile.
  */
 interface LoginAttemptRateLimiter {
-    fun reserveAttempt(normalizedEmail: String, clientIp: String): LoginAttemptDecision
+    fun reserveAttempt(
+        normalizedEmail: String,
+        clientIp: String,
+    ): LoginAttemptDecision
 }

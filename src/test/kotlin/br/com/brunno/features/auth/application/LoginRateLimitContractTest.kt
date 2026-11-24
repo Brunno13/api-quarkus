@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
 class LoginRateLimitContractTest {
-
     @Test
     fun `quota accepts positive limits and whole second windows`() {
         val quota = LoginRateLimitQuota(maxAttempts = 10, windowSeconds = 900)
@@ -61,10 +60,11 @@ class LoginRateLimitContractTest {
 
     @Test
     fun `identity and origin quotas stay independent`() {
-        val policy = LoginRateLimitPolicy(
-            perIdentity = LoginRateLimitQuota(10, 900),
-            perOrigin = LoginRateLimitQuota(60, 60)
-        )
+        val policy =
+            LoginRateLimitPolicy(
+                perIdentity = LoginRateLimitQuota(10, 900),
+                perOrigin = LoginRateLimitQuota(60, 60),
+            )
         assertEquals(10, policy.perIdentity.maxAttempts)
         assertEquals(60L, policy.perOrigin.windowSeconds)
     }

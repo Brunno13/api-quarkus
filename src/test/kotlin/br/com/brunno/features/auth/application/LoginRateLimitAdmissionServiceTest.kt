@@ -18,9 +18,10 @@ class LoginRateLimitAdmissionServiceTest {
     @Test
     fun `rejection preserves delay without revealing rate limit dimension`() {
         val limiter = FakeLimiter(LoginAttemptDecision.Rejected(43))
-        val error = assertThrows(LoginRateLimitExceededException::class.java) {
-            LoginRateLimitAdmissionService(limiter).reserve("user@example.test", "192.0.2.17")
-        }
+        val error =
+            assertThrows(LoginRateLimitExceededException::class.java) {
+                LoginRateLimitAdmissionService(limiter).reserve("user@example.test", "192.0.2.17")
+            }
         assertEquals(43L, error.retryAfterSeconds)
         assertEquals("Too many login attempts", error.message)
         assertFalse(error.toString().contains("user@example.test"))
@@ -31,9 +32,10 @@ class LoginRateLimitAdmissionServiceTest {
     @Test
     fun `invalid email fails generically without reaching the limiter`() {
         val limiter = FakeLimiter()
-        val error = assertThrows(InvalidCredentialsException::class.java) {
-            LoginRateLimitAdmissionService(limiter).reserve("invalid-email", "192.0.2.17")
-        }
+        val error =
+            assertThrows(InvalidCredentialsException::class.java) {
+                LoginRateLimitAdmissionService(limiter).reserve("invalid-email", "192.0.2.17")
+            }
         assertEquals("Invalid credentials", error.message)
         assertTrue(limiter.calls.isEmpty())
     }
@@ -60,9 +62,10 @@ class LoginRateLimitAdmissionServiceTest {
     fun `store failure is propagated rather than granting admission`() {
         val failure = IllegalStateException("rate limit storage unavailable")
         val limiter = FakeLimiter().apply { storeFailure = failure }
-        val thrown = assertThrows(IllegalStateException::class.java) {
-            LoginRateLimitAdmissionService(limiter).reserve("user@example.test", "192.0.2.17")
-        }
+        val thrown =
+            assertThrows(IllegalStateException::class.java) {
+                LoginRateLimitAdmissionService(limiter).reserve("user@example.test", "192.0.2.17")
+            }
         assertSame(failure, thrown)
         assertEquals(1, limiter.calls.size)
     }
@@ -75,11 +78,15 @@ class LoginRateLimitAdmissionServiceTest {
     }
 
     private class FakeLimiter(
-        private val decision: LoginAttemptDecision = LoginAttemptDecision.Allowed
+        private val decision: LoginAttemptDecision = LoginAttemptDecision.Allowed,
     ) : LoginAttemptRateLimiter {
         val calls = mutableListOf<Pair<String, String>>()
         var storeFailure: RuntimeException? = null
-        override fun reserveAttempt(normalizedEmail: String, clientIp: String): LoginAttemptDecision {
+
+        override fun reserveAttempt(
+            normalizedEmail: String,
+            clientIp: String,
+        ): LoginAttemptDecision {
             calls += normalizedEmail to clientIp
             storeFailure?.let { throw it }
             return decision

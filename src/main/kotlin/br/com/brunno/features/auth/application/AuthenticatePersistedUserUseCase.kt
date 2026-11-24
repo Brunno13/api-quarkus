@@ -10,33 +10,39 @@ import jakarta.enterprise.context.ApplicationScoped
 @ApplicationScoped
 @IfBuildProperty(
     name = "app.persistence.mongodb.enabled",
-    stringValue = "true"
+    stringValue = "true",
 )
 class AuthenticatePersistedUserUseCase(
     private val userRepository: UserRepository,
     private val credentialRepository: UserCredentialRepository,
-    private val passwordHasher: PasswordHasher
+    private val passwordHasher: PasswordHasher,
 ) {
     // This is not an account credential. It supplies BCrypt work for missing accounts.
     private val dummyHash = passwordHasher.hash("authentication-timing-placeholder")
 
-    fun execute(email: String, rawPassword: String): User {
+    fun execute(
+        email: String,
+        rawPassword: String,
+    ): User {
         val normalizedEmail = UserEmail.normalize(email)
-        val user = if (UserEmail.isValid(normalizedEmail)) {
-            userRepository.findByEmail(normalizedEmail)
-        } else {
-            null
-        }
+        val user =
+            if (UserEmail.isValid(normalizedEmail)) {
+                userRepository.findByEmail(normalizedEmail)
+            } else {
+                null
+            }
 
-        val storedHash = user
-            ?.let { credentialRepository.findByUserId(it.id) }
-            ?.passwordHash
+        val storedHash =
+            user
+                ?.let { credentialRepository.findByUserId(it.id) }
+                ?.passwordHash
 
         // Always verify a hash, including when the user or credential is absent.
-        val passwordMatches = passwordHasher.verify(
-            rawPassword,
-            storedHash ?: dummyHash
-        )
+        val passwordMatches =
+            passwordHasher.verify(
+                rawPassword,
+                storedHash ?: dummyHash,
+            )
 
         if (user == null || storedHash == null || !passwordMatches) {
             throw InvalidCredentialsException()

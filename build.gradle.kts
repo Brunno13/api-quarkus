@@ -1,5 +1,8 @@
 import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+import org.w3c.dom.Element
+import javax.xml.XMLConstants
+import javax.xml.parsers.DocumentBuilderFactory
 
 plugins {
     kotlin("jvm") version "2.4.10"
@@ -7,11 +10,18 @@ plugins {
     id("io.quarkus")
     jacoco
     id("dev.detekt") version "2.0.0-alpha.6"
+    id("com.diffplug.spotless") version "8.10.4"
 }
 
 repositories {
     mavenCentral()
     mavenLocal()
+}
+
+// AQK-16: isolated PMD CPD toolchain; never added to application/test runtime.
+val aqk16Cpd = configurations.create("aqk16Cpd") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
 }
 
 val quarkusPlatformGroupId = providers.gradleProperty("quarkusPlatformGroupId").get()
@@ -40,6 +50,10 @@ dependencies {
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.quarkus:quarkus-test-security")
     testImplementation("io.quarkus:quarkus-jacoco")
+    testImplementation("com.tngtech.archunit:archunit:1.5.1")
+
+    add(aqk16Cpd.name, "net.sourceforge.pmd:pmd-cli:7.29.0")
+    add(aqk16Cpd.name, "net.sourceforge.pmd:pmd-kotlin:7.29.0")
 }
 
 // AQK-5: preserve audited legacy findings; fail the build on new findings.
@@ -172,4 +186,119 @@ configurations.configureEach {
     if (name == "runtimeClasspath" || name == "testRuntimeClasspath") {
         resolutionStrategy.activateDependencyLocking()
     }
+}
+
+// AQK-16 discovery: inspect Kotlin formatting without changing the existing check gate.
+spotless {
+    isEnforceCheck = false
+    kotlin {
+        target("src/main/kotlin/**/*.kt", "src/test/kotlin/**/*.kt")
+        ktlint("1.8.0")
+    }
+}
+
+// AQK-16: Kotlin duplication gate (60 tokens, no normalization of literals or names).
+// It is intentionally invoked from the existing quality-detekt CI context.
+// PMD CLI keeps lexer/parser errors fatal. Only duplicate-related CLI status is
+// suppressed so that we can validate the complete XML and give a safe summary.
+tasks.register<JavaExec>("aqk16CpdKotlin") {
+    group = "verification"
+    description = "Fail on Kotlin production CPD duplications (PMD 7.29.0, 60 tokens)"
+    mainClass.set("net.sourceforge.pmd.cli.PmdCli")
+    classpath = aqk16Cpd
+
+    val sourceRoot = layout.projectDirectory.dir("src/main/kotlin").asFile
+    val report = layout.buildDirectory.file("reports/aqk16-cpd/cpd-60.xml").get().asFile
+
+    args(
+        "cpd",
+        "--language", "kotlin",
+        "--minimum-tokens", "60",
+        "--dir", sourceRoot.absolutePath,
+        "--encoding", "UTF-8",
+        "--format", "xml",
+        "--report-file", report.absolutePath,
+        "--no-fail-on-violation",
+    )
+
+    doFirst {
+        if (!report.parentFile.isDirectory && !report.parentFile.mkdirs()) {
+            throw GradleException("AQK16_CPD_REPORT_DIRECTORY=FAIL")
+        }
+        if (report.exists() && !report.delete()) {
+            throw GradleException("AQK16_CPD_STALE_REPORT_CLEANUP=FAIL")
+        }
+    }
+
+    doLast {
+        if (!report.isFile || report.length() == 0L) {
+            throw GradleException("AQK16_CPD_XML_MISSING_OR_EMPTY")
+        }
+
+        // XML may contain source fragments: parse securely and never print them.
+        val factory = DocumentBuilderFactory.newInstance().apply {
+            isNamespaceAware = true
+            setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+            setFeature("http://xml.org/sax/features/external-general-entities", false)
+            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+            setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "")
+            setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
+            isXIncludeAware = false
+            isExpandEntityReferences = false
+        }
+        val document = factory.newDocumentBuilder().parse(report)
+        val root = document.documentElement
+        if (root.localName != "pmd-cpd" || root.getAttribute("pmdVersion") != "7.29.0") {
+            throw GradleException("AQK16_CPD_XML_IDENTITY=FAIL")
+        }
+
+        val reportedFiles = mutableListOf<java.io.File>()
+        var duplications = 0
+        var errors = 0
+        val entries = root.childNodes
+        for (i in 0 until entries.length) {
+            val entry = entries.item(i)
+            if (entry !is Element) continue
+            when (entry.localName) {
+                "file" -> {
+                    val path = entry.getAttribute("path")
+                    if (path.isBlank() || !entry.hasAttribute("totalNumberOfTokens")) {
+                        throw GradleException("AQK16_CPD_INVALID_FILE_ENTRY")
+                    }
+                    reportedFiles.add(file(path).canonicalFile)
+                }
+                "duplication" -> duplications++
+                "error" -> errors++
+                else -> throw GradleException("AQK16_CPD_UNKNOWN_XML_ENTRY=${entry.localName}")
+            }
+        }
+
+        val expectedFiles = fileTree(sourceRoot) {
+            include("**/*.kt")
+        }.files.map { it.canonicalFile }.toSet()
+        val actualFiles = reportedFiles.toSet()
+        if (expectedFiles.isEmpty() || reportedFiles.size != expectedFiles.size ||
+            actualFiles != expectedFiles) {
+            throw GradleException(
+                "AQK16_CPD_SCAN_COVERAGE=FAIL expected=${expectedFiles.size} reported=${reportedFiles.size}",
+            )
+        }
+
+        logger.lifecycle("AQK16_CPD_VERSION=7.29.0")
+        logger.lifecycle("AQK16_CPD_MINIMUM_TOKENS=60")
+        logger.lifecycle("AQK16_CPD_SCANNED_FILES=${actualFiles.size}")
+        logger.lifecycle("AQK16_CPD_XML_ERRORS=$errors")
+        logger.lifecycle("AQK16_CPD_DUPLICATION_GROUPS=$duplications")
+        logger.lifecycle("AQK16_CPD_SCAN_COVERAGE=PASS")
+
+        if (errors != 0) throw GradleException("AQK16_CPD_ANALYSIS_ERRORS=FAIL")
+        if (duplications != 0) throw GradleException("AQK16_CPD_DUPLICATION_GATE=FAIL")
+        logger.lifecycle("AQK16_CPD_DUPLICATION_GATE=PASS")
+    }
+}
+
+// Direct local `clean check` must enforce the same CPD policy as quality-detekt.
+tasks.named("check") {
+    dependsOn(tasks.named("aqk16CpdKotlin"))
 }

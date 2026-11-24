@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class ReservedInitialAdminBootstrapStoreTest {
-
     @Test
     fun `persists credential before making admin visible`() {
         val events = mutableListOf<String>()
@@ -47,7 +46,8 @@ class ReservedInitialAdminBootstrapStoreTest {
         val (admin, credential) = adminAndCredential()
         assertThrows(IllegalArgumentException::class.java) {
             store(FakeGate(events), FakeUsers(events)).createFirstAdmin(
-                admin.copy(roles = setOf(UserRole.ADMIN, UserRole.USER)), credential
+                admin.copy(roles = setOf(UserRole.ADMIN, UserRole.USER)),
+                credential,
             )
         }
         assertEquals(emptyList<String>(), events)
@@ -92,9 +92,10 @@ class ReservedInitialAdminBootstrapStoreTest {
         val failure = IllegalStateException("database unavailable")
         val gate = FakeGate(events, checkFailure = failure)
         val (admin, credential) = adminAndCredential()
-        val thrown = assertThrows(IllegalStateException::class.java) {
-            store(gate, FakeUsers(events)).createFirstAdmin(admin, credential)
-        }
+        val thrown =
+            assertThrows(IllegalStateException::class.java) {
+                store(gate, FakeUsers(events)).createFirstAdmin(admin, credential)
+            }
         assertSame(failure, thrown)
         assertEquals(listOf("reserve", "check-admin"), events)
     }
@@ -105,9 +106,10 @@ class ReservedInitialAdminBootstrapStoreTest {
         val failure = IllegalStateException("journal unavailable")
         val gate = FakeGate(events, credentialFailure = failure)
         val (admin, credential) = adminAndCredential()
-        val thrown = assertThrows(IllegalStateException::class.java) {
-            store(gate, FakeUsers(events)).createFirstAdmin(admin, credential)
-        }
+        val thrown =
+            assertThrows(IllegalStateException::class.java) {
+                store(gate, FakeUsers(events)).createFirstAdmin(admin, credential)
+            }
         assertSame(failure, thrown)
         assertEquals(listOf("reserve", "check-admin", "credential"), events)
     }
@@ -119,15 +121,18 @@ class ReservedInitialAdminBootstrapStoreTest {
         val gate = FakeGate(events)
         val repository = FakeUsers(events, failure)
         val (admin, credential) = adminAndCredential()
-        val thrown = assertThrows(IllegalStateException::class.java) {
-            store(gate, repository).createFirstAdmin(admin, credential)
-        }
+        val thrown =
+            assertThrows(IllegalStateException::class.java) {
+                store(gate, repository).createFirstAdmin(admin, credential)
+            }
         assertSame(failure, thrown)
         assertEquals(listOf("reserve", "check-admin", "credential", "create-user"), events)
     }
 
-    private fun store(gate: FakeGate, repository: FakeUsers) =
-        ReservedInitialAdminBootstrapStore(gate, repository)
+    private fun store(
+        gate: FakeGate,
+        repository: FakeUsers,
+    ) = ReservedInitialAdminBootstrapStore(gate, repository)
 
     private fun adminAndCredential(): Pair<User, UserCredential> {
         val id = UUID.randomUUID()
@@ -140,18 +145,21 @@ class ReservedInitialAdminBootstrapStoreTest {
         private val reserveFailure: RuntimeException? = null,
         private val checkFailure: RuntimeException? = null,
         private val credentialFailure: RuntimeException? = null,
-        private val alreadyExists: Boolean = false
+        private val alreadyExists: Boolean = false,
     ) : InitialAdminBootstrapWriteGate {
         var persisted: UserCredential? = null
+
         override fun reserveOnce() {
             events += "reserve"
             reserveFailure?.let { throw it }
         }
+
         override fun adminAlreadyExists(): Boolean {
             events += "check-admin"
             checkFailure?.let { throw it }
             return alreadyExists
         }
+
         override fun persistCredentialDurably(credential: UserCredential) {
             events += "credential"
             credentialFailure?.let { throw it }
@@ -161,10 +169,12 @@ class ReservedInitialAdminBootstrapStoreTest {
 
     private class FakeUsers(
         private val events: MutableList<String>,
-        private val failure: RuntimeException? = null
+        private val failure: RuntimeException? = null,
     ) : UserRepository {
         override fun findById(id: UUID): User? = null
+
         override fun findByEmail(email: String): User? = null
+
         override fun create(user: User): User {
             events += "create-user"
             failure?.let { throw it }

@@ -3,7 +3,6 @@ package br.com.brunno.support
 import io.quarkus.test.junit.QuarkusTestProfile
 
 class MongoIntegrationTestProfile : QuarkusTestProfile {
-
     override fun getConfigOverrides(): Map<String, String> {
         val uri = requiredEnvironment("MONGODB_URI")
         val database = requiredEnvironment("MONGODB_DATABASE")
@@ -19,12 +18,13 @@ class MongoIntegrationTestProfile : QuarkusTestProfile {
             "quarkus.mongodb.devservices.enabled" to "false",
             "quarkus.mongodb.health.enabled" to "false",
             "quarkus.mongodb.connection-string" to uri,
-            "quarkus.mongodb.database" to database
+            "quarkus.mongodb.database" to database,
         )
     }
 
     private fun requiredEnvironment(name: String): String =
-        System.getenv(name)
+        System
+            .getenv(name)
             ?.takeIf { it.isNotBlank() }
             ?: error("$name is required for MongoDB integration tests")
 }

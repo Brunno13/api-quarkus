@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class LoginCredentialsRedactionTest {
-
     @Test
     fun `login request string does not reveal email or password`() {
         val email = "private@example.com"

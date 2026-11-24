@@ -27,7 +27,6 @@ import java.util.UUID
 @TestProfile(MongoIntegrationTestProfile::class)
 @Tag("mongodb-integration")
 class MongoUserCredentialRepositoryIntegrationTest {
-
     @Inject
     lateinit var repository: UserCredentialRepository
 
@@ -45,14 +44,16 @@ class MongoUserCredentialRepositoryIntegrationTest {
         val userId = UUID.randomUUID()
         val hash = passwordHasher.hash("Integration-Password-2026!")
 
-        val collection = mongoClient
-            .getDatabase(databaseName)
-            .getCollection("user_credentials")
+        val collection =
+            mongoClient
+                .getDatabase(databaseName)
+                .getCollection("user_credentials")
 
         try {
-            val created = repository.create(
-                UserCredential(userId, hash)
-            )
+            val created =
+                repository.create(
+                    UserCredential(userId, hash),
+                )
 
             assertEquals(userId, created.userId)
             assertEquals(hash, created.passwordHash)
@@ -63,18 +64,20 @@ class MongoUserCredentialRepositoryIntegrationTest {
             assertEquals(userId, retrieved?.userId)
             assertEquals(hash, retrieved?.passwordHash)
 
-            val document = collection.find(
-                Filters.eq("_id", userId.toString())
-            ).first()
+            val document =
+                collection
+                    .find(
+                        Filters.eq("_id", userId.toString()),
+                    ).first()
 
             assertNotNull(document)
             assertEquals(
                 userId.toString(),
-                document?.getString("_id")
+                document?.getString("_id"),
             )
         } finally {
             collection.deleteOne(
-                Filters.eq("_id", userId.toString())
+                Filters.eq("_id", userId.toString()),
             )
         }
     }
@@ -92,16 +95,19 @@ class MongoUserCredentialRepositoryIntegrationTest {
         val password = "Integration-Secure-Password-2026!"
         val hash = passwordHasher.hash(password)
 
-        val collection = mongoClient
-            .getDatabase(databaseName)
-            .getCollection("user_credentials")
+        val collection =
+            mongoClient
+                .getDatabase(databaseName)
+                .getCollection("user_credentials")
 
         try {
             repository.create(UserCredential(userId, hash))
 
-            val document = collection.find(
-                Filters.eq("_id", userId.toString())
-            ).first()
+            val document =
+                collection
+                    .find(
+                        Filters.eq("_id", userId.toString()),
+                    ).first()
 
             assertNotNull(document)
 
@@ -112,17 +118,17 @@ class MongoUserCredentialRepositoryIntegrationTest {
             assertNull(document?.get("password"))
 
             assertTrue(
-                passwordHasher.verify(password, requireNotNull(storedHash))
+                passwordHasher.verify(password, requireNotNull(storedHash)),
             )
             assertFalse(
                 passwordHasher.verify(
                     "Incorrect-Password",
-                    storedHash
-                )
+                    storedHash,
+                ),
             )
         } finally {
             collection.deleteOne(
-                Filters.eq("_id", userId.toString())
+                Filters.eq("_id", userId.toString()),
             )
         }
     }
@@ -130,29 +136,33 @@ class MongoUserCredentialRepositoryIntegrationTest {
     @Test
     fun `rejects duplicate credentials without overwriting original`() {
         val userId = UUID.randomUUID()
-        val originalHash = passwordHasher.hash(
-            "Original-Password-2026!"
-        )
-        val duplicateHash = passwordHasher.hash(
-            "Different-Password-2026!"
-        )
+        val originalHash =
+            passwordHasher.hash(
+                "Original-Password-2026!",
+            )
+        val duplicateHash =
+            passwordHasher.hash(
+                "Different-Password-2026!",
+            )
 
-        val collection = mongoClient
-            .getDatabase(databaseName)
-            .getCollection("user_credentials")
+        val collection =
+            mongoClient
+                .getDatabase(databaseName)
+                .getCollection("user_credentials")
 
         try {
             repository.create(
-                UserCredential(userId, originalHash)
+                UserCredential(userId, originalHash),
             )
 
-            val error = assertThrows(
-                UserCredentialAlreadyExistsException::class.java
-            ) {
-                repository.create(
-                    UserCredential(userId, duplicateHash)
-                )
-            }
+            val error =
+                assertThrows(
+                    UserCredentialAlreadyExistsException::class.java,
+                ) {
+                    repository.create(
+                        UserCredential(userId, duplicateHash),
+                    )
+                }
 
             val cause = error.cause
 
@@ -167,12 +177,12 @@ class MongoUserCredentialRepositoryIntegrationTest {
             assertEquals(
                 1L,
                 collection.countDocuments(
-                    Filters.eq("_id", userId.toString())
-                )
+                    Filters.eq("_id", userId.toString()),
+                ),
             )
         } finally {
             collection.deleteOne(
-                Filters.eq("_id", userId.toString())
+                Filters.eq("_id", userId.toString()),
             )
         }
     }

@@ -1,13 +1,12 @@
 package br.com.brunno.features.auth.application
 
 import br.com.brunno.features.users.domain.UserRole
-import jakarta.enterprise.context.ApplicationScoped
 import io.quarkus.arc.profile.IfBuildProfile
+import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
 @IfBuildProfile(anyOf = ["dev", "test"])
 class LoginUseCase {
-
     fun execute(command: LoginCommand): LoginResult {
         val email = command.email.trim().lowercase()
 
@@ -19,12 +18,13 @@ class LoginUseCase {
             accessToken = "mock-access-token",
             tokenType = "Bearer",
             expiresIn = 900,
-            user = AuthenticatedUser(
-                id = 1L,
-                name = "Local Admin",
-                email = email,
-                roles = setOf(UserRole.ADMIN)
-            )
+            user =
+                AuthenticatedUser(
+                    id = 1L,
+                    name = "Local Admin",
+                    email = email,
+                    roles = setOf(UserRole.ADMIN),
+                ),
         )
     }
 }

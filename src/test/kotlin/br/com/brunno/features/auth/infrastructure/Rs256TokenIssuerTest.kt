@@ -21,13 +21,13 @@ import java.util.Base64
 import java.util.UUID
 
 class Rs256TokenIssuerTest {
-
-    private val user = User(
-        id = UUID.fromString("00000000-0000-0000-0000-000000000123"),
-        name = "Example User",
-        email = "person@example.com",
-        roles = setOf(UserRole.USER, UserRole.ADMIN)
-    )
+    private val user =
+        User(
+            id = UUID.fromString("00000000-0000-0000-0000-000000000123"),
+            name = "Example User",
+            email = "person@example.com",
+            roles = setOf(UserRole.USER, UserRole.ADMIN),
+        )
     private val clock = Clock.fixed(Instant.parse("2026-11-14T18:00:00Z"), ZoneOffset.UTC)
     private val json = ObjectMapper()
 
@@ -64,8 +64,11 @@ class Rs256TokenIssuerTest {
     fun `tampering with signed JWT payload invalidates signature`() {
         val token = issuer().issue(user).accessToken
         val parts = token.split('.')
-        val alteredPayload = Base64.getUrlEncoder().withoutPadding()
-            .encodeToString("""{"sub":"attacker"}""".toByteArray(StandardCharsets.UTF_8))
+        val alteredPayload =
+            Base64
+                .getUrlEncoder()
+                .withoutPadding()
+                .encodeToString("""{"sub":"attacker"}""".toByteArray(StandardCharsets.UTF_8))
         val tampered = "${parts[0]}.$alteredPayload.${parts[2]}"
 
         assertFalse(verify(tampered, signingKeys.public))
@@ -101,18 +104,21 @@ class Rs256TokenIssuerTest {
 
     private fun issuer(
         issuer: String = "api-quarkus",
-        ttlSeconds: Long = 900
-    ): Rs256TokenIssuer = Rs256TokenIssuer(
-        signingKeys.private as RSAPrivateKey,
-        issuer,
-        ttlSeconds,
-        clock
-    )
+        ttlSeconds: Long = 900,
+    ): Rs256TokenIssuer =
+        Rs256TokenIssuer(
+            signingKeys.private as RSAPrivateKey,
+            issuer,
+            ttlSeconds,
+            clock,
+        )
 
-    private fun decode(segment: String): ByteArray =
-        Base64.getUrlDecoder().decode(segment)
+    private fun decode(segment: String): ByteArray = Base64.getUrlDecoder().decode(segment)
 
-    private fun verify(token: String, publicKey: PublicKey): Boolean {
+    private fun verify(
+        token: String,
+        publicKey: PublicKey,
+    ): Boolean {
         val parts = token.split('.')
         val signature = Signature.getInstance("SHA256withRSA")
         signature.initVerify(publicKey)

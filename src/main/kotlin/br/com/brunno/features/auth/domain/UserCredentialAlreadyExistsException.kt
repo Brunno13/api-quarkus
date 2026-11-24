@@ -1,8 +1,8 @@
 package br.com.brunno.features.auth.domain
 
 class UserCredentialAlreadyExistsException(
-    cause: Throwable? = null
+    cause: Throwable? = null,
 ) : RuntimeException(
-    "Credentials already exist for this user",
-    cause
-)
+        "Credentials already exist for this user",
+        cause,
+    )

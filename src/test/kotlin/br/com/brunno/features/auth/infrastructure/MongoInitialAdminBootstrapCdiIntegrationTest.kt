@@ -32,7 +32,6 @@ import java.util.UUID
 @TestProfile(BootstrapMongoCdiIntegrationProfile::class)
 @Tag("mongodb-integration")
 class MongoInitialAdminBootstrapCdiIntegrationTest {
-
     @Inject
     lateinit var mongoClient: MongoClient
 
@@ -49,14 +48,19 @@ class MongoInitialAdminBootstrapCdiIntegrationTest {
     @Inject
     lateinit var authenticate: AuthenticatePersistedUserUseCase
 
-    @Test
-    fun `bootstraps and authenticates ADMIN using real CDI Mongo repositories`() {
+    private fun checkedBootstrapDatabaseName(): String {
         // Read the active Quarkus configuration, not a static profile property.
         // Quarkus test augmentation may load the profile in another classloader.
         val dbName = configuredDatabaseName
         check(Regex("^api_quarkus_it_bootstrap_cdi_[0-9a-f]{32}$").matches(dbName)) {
             "Refusing to use an unexpected MongoDB integration database"
         }
+        return dbName
+    }
+
+    @Test
+    fun `bootstraps and authenticates ADMIN using real CDI Mongo repositories`() {
+        val dbName = checkedBootstrapDatabaseName()
         val nonce = dbName.removePrefix("api_quarkus_it_bootstrap_cdi_")
         val database = mongoClient.getDatabase(dbName)
         val ownershipCollection = database.getCollection("bootstrap_cdi_integration_owner")
@@ -69,13 +73,14 @@ class MongoInitialAdminBootstrapCdiIntegrationTest {
         try {
             val password = "bootstrap-cdi-test-password"
             val bootstrap = BootstrapFirstAdminUseCase(store, hasher)
-            val created = bootstrap.execute(
-                BootstrapFirstAdminCommand(
-                    name = "First Administrator",
-                    email = "  BOOTSTRAP@Example.Test  ",
-                    rawPassword = password
+            val created =
+                bootstrap.execute(
+                    BootstrapFirstAdminCommand(
+                        name = "First Administrator",
+                        email = "  BOOTSTRAP@Example.Test  ",
+                        rawPassword = password,
+                    ),
                 )
-            )
 
             assertEquals(setOf(UserRole.ADMIN), created.roles)
             assertEquals("bootstrap@example.test", created.email)
@@ -83,8 +88,11 @@ class MongoInitialAdminBootstrapCdiIntegrationTest {
             assertEquals(1L, database.getCollection("users").countDocuments())
             assertEquals(1L, database.getCollection("user_credentials").countDocuments())
 
-            val persisted = database.getCollection("user_credentials")
-                .find(Filters.eq("_id", created.id.toString())).first()
+            val persisted =
+                database
+                    .getCollection("user_credentials")
+                    .find(Filters.eq("_id", created.id.toString()))
+                    .first()
             assertNotNull(persisted)
             val hashed = requireNotNull(persisted).getString("passwordHash")
             check(!hashed.contains(password)) { "Password must never be persisted in cleartext" }
@@ -100,8 +108,10 @@ class MongoInitialAdminBootstrapCdiIntegrationTest {
             assertThrows(InitialAdminAlreadyConfiguredException::class.java) {
                 bootstrap.execute(
                     BootstrapFirstAdminCommand(
-                        "Second Administrator", "second@example.test", password
-                    )
+                        "Second Administrator",
+                        "second@example.test",
+                        password,
+                    ),
                 )
             }
             assertEquals(1L, database.getCollection("users").countDocuments())
@@ -124,10 +134,12 @@ class BootstrapMongoCdiIntegrationProfile : QuarkusTestProfile {
     }
 
     override fun getConfigOverrides(): Map<String, String> {
-        val uri = System.getenv("MONGODB_URI")?.takeIf(String::isNotBlank)
-            ?: error("MONGODB_URI is required for MongoDB integration tests")
-        val guard = System.getenv("MONGODB_DATABASE")?.takeIf(String::isNotBlank)
-            ?: error("MONGODB_DATABASE is required for MongoDB integration tests")
+        val uri =
+            System.getenv("MONGODB_URI")?.takeIf(String::isNotBlank)
+                ?: error("MONGODB_URI is required for MongoDB integration tests")
+        val guard =
+            System.getenv("MONGODB_DATABASE")?.takeIf(String::isNotBlank)
+                ?: error("MONGODB_DATABASE is required for MongoDB integration tests")
         require(guard.startsWith("api_quarkus_it_")) {
             "MongoDB integration requires a dedicated api_quarkus_it_ database prefix"
         }
@@ -138,7 +150,7 @@ class BootstrapMongoCdiIntegrationProfile : QuarkusTestProfile {
             "quarkus.mongodb.devservices.enabled" to "false",
             "quarkus.mongodb.health.enabled" to "false",
             "quarkus.mongodb.connection-string" to uri,
-            "quarkus.mongodb.database" to databaseName
+            "quarkus.mongodb.database" to databaseName,
         )
     }
 }

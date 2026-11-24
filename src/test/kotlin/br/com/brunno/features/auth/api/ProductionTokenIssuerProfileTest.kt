@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test
 
 @QuarkusTest
 class ProductionTokenIssuerProfileTest {
-
     @Test
     fun `production token issuer is not available in test profile`() {
         assertTrue(!Arc.container().instance(TokenIssuer::class.java).isAvailable)

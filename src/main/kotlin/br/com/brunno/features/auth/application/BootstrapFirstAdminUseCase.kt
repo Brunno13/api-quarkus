@@ -13,7 +13,7 @@ import java.util.UUID
  */
 class BootstrapFirstAdminUseCase(
     private val store: InitialAdminBootstrapStore,
-    private val passwordHasher: PasswordHasher
+    private val passwordHasher: PasswordHasher,
 ) {
     fun execute(command: BootstrapFirstAdminCommand): User {
         val name = command.name.trim()
@@ -25,21 +25,23 @@ class BootstrapFirstAdminUseCase(
             throw InvalidUserEmailFormatException()
         }
 
-        val hash = try {
-            passwordHasher.hash(command.rawPassword)
-        } catch (_: IllegalArgumentException) {
-            throw InvalidInitialPasswordException()
-        }
+        val hash =
+            try {
+                passwordHasher.hash(command.rawPassword)
+            } catch (_: IllegalArgumentException) {
+                throw InvalidInitialPasswordException()
+            }
 
-        val user = User(
-            id = UUID.randomUUID(),
-            name = name,
-            email = email,
-            roles = setOf(UserRole.ADMIN)
-        )
+        val user =
+            User(
+                id = UUID.randomUUID(),
+                name = name,
+                email = email,
+                roles = setOf(UserRole.ADMIN),
+            )
         return store.createFirstAdmin(
             user = user,
-            credential = UserCredential(user.id, hash)
+            credential = UserCredential(user.id, hash),
         )
     }
 }

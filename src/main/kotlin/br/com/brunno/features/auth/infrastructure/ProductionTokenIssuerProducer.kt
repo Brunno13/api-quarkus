@@ -15,7 +15,6 @@ import java.util.Optional
 @Dependent
 @IfBuildProfile("prod")
 class ProductionTokenIssuerProducer {
-
     @Produces
     @ApplicationScoped
     @Startup
@@ -23,26 +22,28 @@ class ProductionTokenIssuerProducer {
         @ConfigProperty(name = "app.auth.jwt.private-key-path") privateKeyLocation: Optional<String>,
         @ConfigProperty(name = "mp.jwt.verify.publickey.location") verificationKeyLocation: String,
         @ConfigProperty(name = "mp.jwt.verify.issuer") issuer: String,
-        @ConfigProperty(name = "app.auth.jwt.access-token-ttl-seconds", defaultValue = "900") ttl: Long
+        @ConfigProperty(name = "app.auth.jwt.access-token-ttl-seconds", defaultValue = "900") ttl: Long,
     ): TokenIssuer {
-        val privateLocation = privateKeyLocation
-            .filter { it.isNotBlank() }
-            .orElseThrow { IllegalStateException("JWT signing private key is not configured") }
+        val privateLocation =
+            privateKeyLocation
+                .filter { it.isNotBlank() }
+                .orElseThrow { IllegalStateException("JWT signing private key is not configured") }
         return ExternalRsaJwtIssuerFactory().create(
             externalFilePath(privateLocation),
             externalFilePath(verificationKeyLocation),
             issuer,
-            ttl
+            ttl,
         )
     }
 
     private fun externalFilePath(location: String): Path {
         require(location.isNotBlank()) { "JWT key location must not be blank" }
-        val path = if (location.startsWith("file:")) {
-            Path.of(URI.create(location))
-        } else {
-            Path.of(location)
-        }
+        val path =
+            if (location.startsWith("file:")) {
+                Path.of(URI.create(location))
+            } else {
+                Path.of(location)
+            }
         require(path.isAbsolute) { "JWT keys must be loaded from absolute external file paths" }
         return path
     }

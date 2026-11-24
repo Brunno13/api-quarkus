@@ -7,22 +7,16 @@ import jakarta.ws.rs.ext.ExceptionMapper
 import jakarta.ws.rs.ext.Provider
 
 @Provider
-class InvalidUserEmailFormatExceptionMapper :
-    ExceptionMapper<InvalidUserEmailFormatException> {
-
-    override fun toResponse(
-        exception: InvalidUserEmailFormatException
-    ): Response {
-        return Response
+class InvalidUserEmailFormatExceptionMapper : ExceptionMapper<InvalidUserEmailFormatException> {
+    override fun toResponse(exception: InvalidUserEmailFormatException): Response =
+        Response
             .status(Response.Status.BAD_REQUEST)
             .type(MediaType.APPLICATION_JSON)
             .entity(
                 ApiErrorResponse(
                     title = "Bad Request",
                     status = 400,
-                    detail = exception.message ?: "Invalid user email format"
-                )
-            )
-            .build()
-    }
+                    detail = exception.message ?: "Invalid user email format",
+                ),
+            ).build()
 }

@@ -4,11 +4,11 @@ import br.com.brunno.features.auth.application.BootstrapFirstAdminCommand
 import br.com.brunno.features.auth.application.BootstrapFirstAdminUseCase
 import br.com.brunno.features.auth.application.InitialAdminBootstrapStore
 import br.com.brunno.features.auth.application.PasswordHasher
+import io.quarkus.runtime.QuarkusApplication
+import io.quarkus.runtime.annotations.QuarkusMain
+import io.quarkus.runtime.configuration.ConfigUtils
 import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
-import io.quarkus.runtime.QuarkusApplication
-import io.quarkus.runtime.configuration.ConfigUtils
-import io.quarkus.runtime.annotations.QuarkusMain
 import org.eclipse.microprofile.config.ConfigProvider
 
 /**
@@ -32,12 +32,19 @@ class BootstrapFirstAdminMain : QuarkusApplication {
         }
 
         val config = ConfigProvider.getConfig()
-        val databaseName = config.getOptionalValue(
-            "quarkus.mongodb.database", String::class.java
-        ).orElse("")
-        val httpHostEnabled = !config.getOptionalValue(
-            "quarkus.http.host-enabled", String::class.java
-        ).orElse("true").equals("false", ignoreCase = true)
+        val databaseName =
+            config
+                .getOptionalValue(
+                    "quarkus.mongodb.database",
+                    String::class.java,
+                ).orElse("")
+        val httpHostEnabled =
+            !config
+                .getOptionalValue(
+                    "quarkus.http.host-enabled",
+                    String::class.java,
+                ).orElse("true")
+                .equals("false", ignoreCase = true)
 
         // Instance<T> permits dev/test profiles with no MongoDB bean; prod is checked before access.
         val action: (BootstrapFirstAdminCommand) -> br.com.brunno.features.users.domain.User = { command ->
@@ -47,7 +54,7 @@ class BootstrapFirstAdminMain : QuarkusApplication {
             args = args,
             activeProfile = ConfigUtils.getProfiles().singleOrNull().orEmpty(),
             databaseName = databaseName,
-            httpHostEnabled = httpHostEnabled
+            httpHostEnabled = httpHostEnabled,
         )
     }
 }

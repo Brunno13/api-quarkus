@@ -18,7 +18,6 @@ import java.util.UUID
 @QuarkusTest
 @TestProfile(CredentialProvisioningApiTestProfile::class)
 class UserCredentialResourceJwtTest {
-
     @Inject
     lateinit var credentials: TestUserCredentialRepository
 
@@ -33,14 +32,17 @@ class UserCredentialResourceJwtTest {
 
     @Test
     fun `signed RS256 ADMIN JWT provisions credentials with HTTP 204`() {
-        val token = Jwt.issuer("api-quarkus")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-admin")
-            .groups(setOf("ADMIN"))
-            .sign()
+        val token =
+            Jwt
+                .issuer("api-quarkus")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-admin")
+                .groups(setOf("ADMIN"))
+                .sign()
 
         given()
-            .auth().oauth2(token)
+            .auth()
+            .oauth2(token)
             .contentType("application/json")
             .body(requestBody)
             .`when`()
@@ -53,14 +55,17 @@ class UserCredentialResourceJwtTest {
 
     @Test
     fun `signed RS256 USER JWT cannot provision credentials`() {
-        val token = Jwt.issuer("api-quarkus")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-user")
-            .groups(setOf("USER"))
-            .sign()
+        val token =
+            Jwt
+                .issuer("api-quarkus")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-user")
+                .groups(setOf("USER"))
+                .sign()
 
         given()
-            .auth().oauth2(token)
+            .auth()
+            .oauth2(token)
             .contentType("application/json")
             .body(requestBody)
             .`when`()
@@ -73,14 +78,17 @@ class UserCredentialResourceJwtTest {
 
     @Test
     fun `RS256 JWT with unexpected issuer cannot provision credentials`() {
-        val token = Jwt.issuer("unexpected-issuer")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-admin")
-            .groups(setOf("ADMIN"))
-            .sign()
+        val token =
+            Jwt
+                .issuer("unexpected-issuer")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-admin")
+                .groups(setOf("ADMIN"))
+                .sign()
 
         given()
-            .auth().oauth2(token)
+            .auth()
+            .oauth2(token)
             .contentType("application/json")
             .body(requestBody)
             .`when`()
@@ -93,11 +101,13 @@ class UserCredentialResourceJwtTest {
 
     @Test
     fun `RS256 JWT with tampered signature cannot provision credentials`() {
-        val token = Jwt.issuer("api-quarkus")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-admin")
-            .groups(setOf("ADMIN"))
-            .sign()
+        val token =
+            Jwt
+                .issuer("api-quarkus")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-admin")
+                .groups(setOf("ADMIN"))
+                .sign()
 
         val parts = token.split('.')
         val replacement = if (parts[2][0] == 'A') 'B' else 'A'
@@ -105,7 +115,8 @@ class UserCredentialResourceJwtTest {
         val tamperedToken = "${parts[0]}.${parts[1]}.$tamperedSignature"
 
         given()
-            .auth().oauth2(tamperedToken)
+            .auth()
+            .oauth2(tamperedToken)
             .contentType("application/json")
             .body(requestBody)
             .`when`()
@@ -119,16 +130,19 @@ class UserCredentialResourceJwtTest {
     @Test
     fun `expired RS256 ADMIN JWT cannot provision credentials`() {
         val now = Instant.now().epochSecond
-        val token = Jwt.issuer("api-quarkus")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-admin")
-            .groups(setOf("ADMIN"))
-            .claim("iat", now - 3600)
-            .claim("exp", now - 300)
-            .sign()
+        val token =
+            Jwt
+                .issuer("api-quarkus")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-admin")
+                .groups(setOf("ADMIN"))
+                .claim("iat", now - 3600)
+                .claim("exp", now - 300)
+                .sign()
 
         given()
-            .auth().oauth2(token)
+            .auth()
+            .oauth2(token)
             .contentType("application/json")
             .body(requestBody)
             .`when`()

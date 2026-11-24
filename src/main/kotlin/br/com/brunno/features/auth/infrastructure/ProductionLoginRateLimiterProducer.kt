@@ -32,19 +32,23 @@ class ProductionLoginRateLimiterProducer {
         @ConfigProperty(name = "app.auth.rate-limit.origin.max-attempts", defaultValue = "30")
         originMaxAttempts: Int,
         @ConfigProperty(name = "app.auth.rate-limit.origin.window-seconds", defaultValue = "60")
-        originWindowSeconds: Long
+        originWindowSeconds: Long,
     ): LoginAttemptRateLimiter {
-        val settings = ProductionLoginRateLimitSettings.parse(
-            encodedSecret.orElse(null),
-            identityMaxAttempts,
-            identityWindowSeconds,
-            originMaxAttempts,
-            originWindowSeconds
-        )
+        val settings =
+            ProductionLoginRateLimitSettings.parse(
+                encodedSecret.orElse(null),
+                identityMaxAttempts,
+                identityWindowSeconds,
+                originMaxAttempts,
+                originWindowSeconds,
+            )
         val secret = settings.secretCopy()
         try {
             return MongoLoginAttemptRateLimiter(
-                mongoClientProvider.get(), databaseName, settings.policy, secret
+                mongoClientProvider.get(),
+                databaseName,
+                settings.policy,
+                secret,
             )
         } finally {
             secret.fill(0)

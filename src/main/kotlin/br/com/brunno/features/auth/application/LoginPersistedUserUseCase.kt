@@ -8,9 +8,12 @@ import jakarta.enterprise.context.ApplicationScoped
 @IfBuildProfile("prod")
 class LoginPersistedUserUseCase(
     private val authenticate: AuthenticatePersistedUserUseCase,
-    private val tokenIssuer: TokenIssuer
+    private val tokenIssuer: TokenIssuer,
 ) {
-    fun execute(email: String, rawPassword: String): AuthenticatedSession {
+    fun execute(
+        email: String,
+        rawPassword: String,
+    ): AuthenticatedSession {
         val user = authenticate.execute(email, rawPassword)
         val token = tokenIssuer.issue(user)
         return AuthenticatedSession(user, token)

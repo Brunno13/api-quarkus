@@ -14,13 +14,13 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class LoginPersistedUserUseCaseTest {
-
-    private val user = User(
-        id = UUID.fromString("00000000-0000-0000-0000-000000000123"),
-        name = "Example User",
-        email = "person@example.com",
-        roles = setOf(UserRole.USER, UserRole.ADMIN)
-    )
+    private val user =
+        User(
+            id = UUID.fromString("00000000-0000-0000-0000-000000000123"),
+            name = "Example User",
+            email = "person@example.com",
+            roles = setOf(UserRole.USER, UserRole.ADMIN),
+        )
 
     @Test
     fun `valid credentials issue a token for the persisted user`() {
@@ -93,9 +93,10 @@ class LoginPersistedUserUseCaseTest {
         issuer.error = failure
         val useCase = useCase(user, credential(), issuer)
 
-        val thrown = assertThrows(IllegalStateException::class.java) {
-            useCase.execute("person@example.com", "correct-password")
-        }
+        val thrown =
+            assertThrows(IllegalStateException::class.java) {
+                useCase.execute("person@example.com", "correct-password")
+            }
 
         assertSame(failure, thrown)
         assertEquals(1, issuer.calls)
@@ -126,48 +127,50 @@ class LoginPersistedUserUseCaseTest {
         assertTrue(session.toString().contains("[REDACTED]"))
     }
 
-    private fun credential(): UserCredential =
-        UserCredential(user.id, "stored-bcrypt-hash")
+    private fun credential(): UserCredential = UserCredential(user.id, "stored-bcrypt-hash")
 
     private fun useCase(
         persistedUser: User?,
         credential: UserCredential?,
-        issuer: TokenIssuer
+        issuer: TokenIssuer,
     ): LoginPersistedUserUseCase {
-        val authenticate = AuthenticatePersistedUserUseCase(
-            FakeUsers(persistedUser),
-            FakeCredentials(credential),
-            FakePasswords()
-        )
+        val authenticate =
+            AuthenticatePersistedUserUseCase(
+                FakeUsers(persistedUser),
+                FakeCredentials(credential),
+                FakePasswords(),
+            )
         return LoginPersistedUserUseCase(authenticate, issuer)
     }
 
-    private class FakeUsers(private val persistedUser: User?) : UserRepository {
-        override fun findByEmail(email: String): User? =
-            persistedUser?.takeIf { it.email == email }
+    private class FakeUsers(
+        private val persistedUser: User?,
+    ) : UserRepository {
+        override fun findByEmail(email: String): User? = persistedUser?.takeIf { it.email == email }
 
-        override fun findById(id: UUID): User? =
-            throw AssertionError("Unexpected lookup by ID")
+        override fun findById(id: UUID): User? = throw AssertionError("Unexpected lookup by ID")
 
-        override fun create(user: User): User =
-            throw AssertionError("Unexpected user creation")
+        override fun create(user: User): User = throw AssertionError("Unexpected user creation")
     }
 
     private class FakeCredentials(
-        private val credential: UserCredential?
+        private val credential: UserCredential?,
     ) : UserCredentialRepository {
-        override fun findByUserId(userId: UUID): UserCredential? =
-            credential?.takeIf { it.userId == userId }
+        override fun findByUserId(userId: UUID): UserCredential? = credential?.takeIf { it.userId == userId }
 
-        override fun create(credential: UserCredential): UserCredential =
-            throw AssertionError("Unexpected credential creation")
+        override fun create(credential: UserCredential): UserCredential {
+            val reason = "Unexpected credential creation"
+            throw AssertionError(reason)
+        }
     }
 
     private class FakePasswords : PasswordHasher {
         override fun hash(rawPassword: String): String = "dummy-bcrypt-hash"
 
-        override fun verify(rawPassword: String, encodedHash: String): Boolean =
-            rawPassword == "correct-password" && encodedHash == "stored-bcrypt-hash"
+        override fun verify(
+            rawPassword: String,
+            encodedHash: String,
+        ): Boolean = rawPassword == "correct-password" && encodedHash == "stored-bcrypt-hash"
     }
 
     private class RecordingIssuer : TokenIssuer {

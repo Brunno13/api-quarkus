@@ -7,18 +7,17 @@ import jakarta.ws.rs.ext.ExceptionMapper
 import jakarta.ws.rs.ext.Provider
 
 @Provider
-class LoginRateLimitExceededExceptionMapper :
-    ExceptionMapper<LoginRateLimitExceededException> {
+class LoginRateLimitExceededExceptionMapper : ExceptionMapper<LoginRateLimitExceededException> {
     override fun toResponse(exception: LoginRateLimitExceededException): Response =
-        Response.status(429)
+        Response
+            .status(429)
             .type(MediaType.APPLICATION_JSON)
             .header("Retry-After", exception.retryAfterSeconds.toString())
             .entity(
                 ApiErrorResponse(
                     title = "Too Many Requests",
                     status = 429,
-                    detail = "Too many login attempts"
-                )
-            )
-            .build()
+                    detail = "Too many login attempts",
+                ),
+            ).build()
 }

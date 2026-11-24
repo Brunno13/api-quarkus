@@ -18,7 +18,7 @@ import java.util.UUID
 
 @IfBuildProperty(
     name = "app.persistence.mongodb.enabled",
-    stringValue = "true"
+    stringValue = "true",
 )
 @Path("/users/{id}/credentials")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -26,17 +26,16 @@ import java.util.UUID
 @RolesAllowed("ADMIN")
 @Tag(name = "Credentials", description = "Administrative credential provisioning")
 class UserCredentialResource(
-    private val provisionUserCredentialUseCase: ProvisionUserCredentialUseCase
+    private val provisionUserCredentialUseCase: ProvisionUserCredentialUseCase,
 ) {
-
     @PUT
     @Operation(
         summary = "Provision initial user credentials",
-        description = "Sets a password only when the user has no credentials. Requires ADMIN."
+        description = "Sets a password only when the user has no credentials. Requires ADMIN.",
     )
     fun provision(
         @PathParam("id") userId: UUID,
-        request: ProvisionUserCredentialRequest?
+        request: ProvisionUserCredentialRequest?,
     ): Response {
         val password = request?.password ?: throw InvalidInitialPasswordException()
 

@@ -4,7 +4,7 @@ import java.util.UUID
 
 class UserCredential(
     val userId: UUID,
-    val passwordHash: String
+    val passwordHash: String,
 ) {
     init {
         require(passwordHash.isNotBlank()) {
@@ -12,6 +12,5 @@ class UserCredential(
         }
     }
 
-    override fun toString(): String =
-        "UserCredential(userId=$userId, passwordHash=[REDACTED])"
+    override fun toString(): String = "UserCredential(userId=$userId, passwordHash=[REDACTED])"
 }

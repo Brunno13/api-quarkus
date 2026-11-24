@@ -12,9 +12,12 @@ import jakarta.enterprise.context.ApplicationScoped
 @ApplicationScoped
 @IfBuildProfile("prod")
 class LoginRateLimitAdmissionService(
-    private val limiter: LoginAttemptRateLimiter
+    private val limiter: LoginAttemptRateLimiter,
 ) {
-    fun reserve(email: String, verifiedClientIp: String) {
+    fun reserve(
+        email: String,
+        verifiedClientIp: String,
+    ) {
         val normalizedEmail = UserEmail.normalize(email)
         if (!UserEmail.isValid(normalizedEmail)) {
             throw InvalidCredentialsException()
@@ -22,11 +25,15 @@ class LoginRateLimitAdmissionService(
         require(verifiedClientIp.isNotBlank() && verifiedClientIp.length <= 64) {
             "A verified client IP address is required"
         }
-        when (val decision = limiter.reserveAttempt(normalizedEmail, verifiedClientIp)) {
-            LoginAttemptDecision.Allowed -> Unit
-            is LoginAttemptDecision.Rejected ->
-                throw LoginRateLimitExceededException(decision.retryAfterSeconds)
-        }
         // Operational failures from the store deliberately propagate (fail closed).
+        when (val decision = limiter.reserveAttempt(normalizedEmail, verifiedClientIp)) {
+            LoginAttemptDecision.Allowed -> {
+                return
+            }
+
+            is LoginAttemptDecision.Rejected -> {
+                throw LoginRateLimitExceededException(decision.retryAfterSeconds)
+            }
+        }
     }
 }

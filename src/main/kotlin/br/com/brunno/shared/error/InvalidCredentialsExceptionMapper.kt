@@ -7,22 +7,16 @@ import jakarta.ws.rs.ext.ExceptionMapper
 import jakarta.ws.rs.ext.Provider
 
 @Provider
-class InvalidCredentialsExceptionMapper :
-    ExceptionMapper<InvalidCredentialsException> {
-
-    override fun toResponse(
-        exception: InvalidCredentialsException
-    ): Response {
-        return Response
+class InvalidCredentialsExceptionMapper : ExceptionMapper<InvalidCredentialsException> {
+    override fun toResponse(exception: InvalidCredentialsException): Response =
+        Response
             .status(Response.Status.UNAUTHORIZED)
             .type(MediaType.APPLICATION_JSON)
             .entity(
                 ApiErrorResponse(
                     title = "Unauthorized",
                     status = 401,
-                    detail = "Invalid credentials"
-                )
-            )
-            .build()
-    }
+                    detail = "Invalid credentials",
+                ),
+            ).build()
 }

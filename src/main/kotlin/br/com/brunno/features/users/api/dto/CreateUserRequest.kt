@@ -6,13 +6,12 @@ import jakarta.validation.constraints.NotBlank
 data class CreateUserRequest(
     @field:NotBlank
     val name: String,
-
     @field:NotBlank
-    val email: String
+    val email: String,
 ) {
     fun toCommand(): CreateUserCommand =
         CreateUserCommand(
             name = name,
-            email = email
+            email = email,
         )
 }

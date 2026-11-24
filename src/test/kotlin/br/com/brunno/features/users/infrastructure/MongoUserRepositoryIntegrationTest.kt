@@ -1,13 +1,13 @@
 package br.com.brunno.features.users.infrastructure
 
 import br.com.brunno.features.users.domain.User
+import br.com.brunno.features.users.domain.UserEmailAlreadyExistsException
 import br.com.brunno.features.users.domain.UserRepository
 import br.com.brunno.features.users.domain.UserRole
-import br.com.brunno.features.users.domain.UserEmailAlreadyExistsException
 import br.com.brunno.support.MongoIntegrationTestProfile
+import com.mongodb.MongoException
 import com.mongodb.client.MongoClient
 import com.mongodb.client.model.Filters
-import com.mongodb.MongoException
 import io.quarkus.test.junit.QuarkusTest
 import io.quarkus.test.junit.TestProfile
 import jakarta.inject.Inject
@@ -24,7 +24,6 @@ import java.util.UUID
 @TestProfile(MongoIntegrationTestProfile::class)
 @Tag("mongodb-integration")
 class MongoUserRepositoryIntegrationTest {
-
     @Inject
     lateinit var repository: UserRepository
 
@@ -38,16 +37,18 @@ class MongoUserRepositoryIntegrationTest {
     fun `creates and retrieves user from MongoDB`() {
         val id = UUID.randomUUID()
 
-        val user = User(
-            id = id,
-            name = "Integration Admin",
-            email = "  ADMIN@Example.COM  ",
-            roles = setOf(UserRole.USER, UserRole.ADMIN)
-        )
+        val user =
+            User(
+                id = id,
+                name = "Integration Admin",
+                email = "  ADMIN@Example.COM  ",
+                roles = setOf(UserRole.USER, UserRole.ADMIN),
+            )
 
-        val collection = mongoClient
-            .getDatabase(databaseName)
-            .getCollection("users")
+        val collection =
+            mongoClient
+                .getDatabase(databaseName)
+                .getCollection("users")
 
         try {
             // Create
@@ -65,32 +66,34 @@ class MongoUserRepositoryIntegrationTest {
             assertEquals(created, byId)
 
             // Find by normalized email
-            val byEmail = repository.findByEmail(
-                "  ADMIN@EXAMPLE.COM  "
-            )
+            val byEmail =
+                repository.findByEmail(
+                    "  ADMIN@EXAMPLE.COM  ",
+                )
 
             assertNotNull(byEmail)
             assertEquals(id, byEmail?.id)
             assertEquals(created, byEmail)
 
             // Inspect BSON representation
-            val document = collection
-                .find(Filters.eq("_id", id.toString()))
-                .first()
+            val document =
+                collection
+                    .find(Filters.eq("_id", id.toString()))
+                    .first()
 
             assertNotNull(document)
             assertEquals(
                 id.toString(),
-                document?.getString("_id")
+                document?.getString("_id"),
             )
             assertEquals(
                 "admin@example.com",
-                document?.getString("email")
+                document?.getString("email"),
             )
         } finally {
             // Remove only the document created by this test.
             collection.deleteOne(
-                Filters.eq("_id", id.toString())
+                Filters.eq("_id", id.toString()),
             )
         }
     }
@@ -119,32 +122,36 @@ class MongoUserRepositoryIntegrationTest {
         val duplicateId = UUID.randomUUID()
         val email = "duplicate-${UUID.randomUUID()}@example.com"
 
-        val original = User(
-            id = originalId,
-            name = "Original User",
-            email = email,
-            roles = setOf(UserRole.USER)
-        )
+        val original =
+            User(
+                id = originalId,
+                name = "Original User",
+                email = email,
+                roles = setOf(UserRole.USER),
+            )
 
-        val duplicate = User(
-            id = duplicateId,
-            name = "Duplicate User",
-            email = email,
-            roles = setOf(UserRole.USER)
-        )
+        val duplicate =
+            User(
+                id = duplicateId,
+                name = "Duplicate User",
+                email = email,
+                roles = setOf(UserRole.USER),
+            )
 
-        val collection = mongoClient
-            .getDatabase(databaseName)
-            .getCollection("users")
+        val collection =
+            mongoClient
+                .getDatabase(databaseName)
+                .getCollection("users")
 
         try {
             repository.create(original)
 
-            val error = assertThrows(
-                UserEmailAlreadyExistsException::class.java
-            ) {
-                repository.create(duplicate)
-            }
+            val error =
+                assertThrows(
+                    UserEmailAlreadyExistsException::class.java,
+                ) {
+                    repository.create(duplicate)
+                }
 
             val cause = error.cause
 
@@ -155,7 +162,7 @@ class MongoUserRepositoryIntegrationTest {
             // The original user must remain unchanged.
             assertEquals(
                 originalId,
-                repository.findByEmail(email)?.id
+                repository.findByEmail(email)?.id,
             )
 
             // The duplicate must not have been persisted.
@@ -163,11 +170,11 @@ class MongoUserRepositoryIntegrationTest {
         } finally {
             // Clean up only documents belonging to this test.
             collection.deleteOne(
-                Filters.eq("_id", originalId.toString())
+                Filters.eq("_id", originalId.toString()),
             )
 
             collection.deleteOne(
-                Filters.eq("_id", duplicateId.toString())
+                Filters.eq("_id", duplicateId.toString()),
             )
         }
     }
@@ -180,34 +187,38 @@ class MongoUserRepositoryIntegrationTest {
         val suffix = UUID.randomUUID().toString()
         val normalizedEmail = "admin-$suffix@example.com"
 
-        val original = User(
-            id = originalId,
-            name = "Original Admin",
-            email = "  ADMIN-$suffix@EXAMPLE.COM  ",
-            roles = setOf(UserRole.ADMIN)
-        )
+        val original =
+            User(
+                id = originalId,
+                name = "Original Admin",
+                email = "  ADMIN-$suffix@EXAMPLE.COM  ",
+                roles = setOf(UserRole.ADMIN),
+            )
 
-        val duplicate = User(
-            id = duplicateId,
-            name = "Duplicate Admin",
-            email = normalizedEmail,
-            roles = setOf(UserRole.ADMIN)
-        )
+        val duplicate =
+            User(
+                id = duplicateId,
+                name = "Duplicate Admin",
+                email = normalizedEmail,
+                roles = setOf(UserRole.ADMIN),
+            )
 
-        val collection = mongoClient
-            .getDatabase(databaseName)
-            .getCollection("users")
+        val collection =
+            mongoClient
+                .getDatabase(databaseName)
+                .getCollection("users")
 
         try {
             val created = repository.create(original)
 
             assertEquals(normalizedEmail, created.email)
 
-            val error = assertThrows(
-                UserEmailAlreadyExistsException::class.java
-            ) {
-                repository.create(duplicate)
-            }
+            val error =
+                assertThrows(
+                    UserEmailAlreadyExistsException::class.java,
+                ) {
+                    repository.create(duplicate)
+                }
 
             val cause = error.cause
 
@@ -217,28 +228,29 @@ class MongoUserRepositoryIntegrationTest {
             // Only the original user must exist.
             assertEquals(
                 originalId,
-                repository.findByEmail(normalizedEmail)?.id
+                repository.findByEmail(normalizedEmail)?.id,
             )
 
             assertNull(repository.findById(duplicateId))
 
             // Verify the normalized value stored in MongoDB.
-            val document = collection
-                .find(Filters.eq("_id", originalId.toString()))
-                .first()
+            val document =
+                collection
+                    .find(Filters.eq("_id", originalId.toString()))
+                    .first()
 
             assertNotNull(document)
             assertEquals(
                 normalizedEmail,
-                document?.getString("email")
+                document?.getString("email"),
             )
         } finally {
             collection.deleteOne(
-                Filters.eq("_id", originalId.toString())
+                Filters.eq("_id", originalId.toString()),
             )
 
             collection.deleteOne(
-                Filters.eq("_id", duplicateId.toString())
+                Filters.eq("_id", duplicateId.toString()),
             )
         }
     }

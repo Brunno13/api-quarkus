@@ -8,20 +8,21 @@ import io.restassured.RestAssured.given
 import io.smallrye.jwt.build.Jwt
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
-import java.util.UUID
 import java.time.Instant
+import java.util.UUID
 
 @QuarkusTest
 @TestProfile(UsersApiTestProfile::class)
 class UserResourceJwtTest {
-
     @Test
     fun `valid RS256 ADMIN token accesses protected user endpoint`() {
-        val token = Jwt.issuer("api-quarkus")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-admin")
-            .groups(setOf("ADMIN"))
-            .sign()
+        val token =
+            Jwt
+                .issuer("api-quarkus")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-admin")
+                .groups(setOf("ADMIN"))
+                .sign()
 
         val user = TestUserRepository.EXISTING_USER
 
@@ -33,19 +34,24 @@ class UserResourceJwtTest {
             .then()
             .statusCode(200)
             .body(
-                "id", equalTo(user.id.toString()),
-                "name", equalTo(user.name),
-                "email", equalTo(user.email)
+                "id",
+                equalTo(user.id.toString()),
+                "name",
+                equalTo(user.name),
+                "email",
+                equalTo(user.email),
             )
     }
 
     @Test
     fun `valid RS256 USER token cannot access ADMIN endpoint`() {
-        val token = Jwt.issuer("api-quarkus")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-user")
-            .groups(setOf("USER"))
-            .sign()
+        val token =
+            Jwt
+                .issuer("api-quarkus")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-user")
+                .groups(setOf("USER"))
+                .sign()
 
         val user = TestUserRepository.EXISTING_USER
 
@@ -60,11 +66,13 @@ class UserResourceJwtTest {
 
     @Test
     fun `JWT with unexpected issuer returns HTTP 401`() {
-        val token = Jwt.issuer("unexpected-issuer")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-admin")
-            .groups(setOf("ADMIN"))
-            .sign()
+        val token =
+            Jwt
+                .issuer("unexpected-issuer")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-admin")
+                .groups(setOf("ADMIN"))
+                .sign()
 
         val user = TestUserRepository.EXISTING_USER
 
@@ -79,11 +87,13 @@ class UserResourceJwtTest {
 
     @Test
     fun `JWT with tampered signature returns HTTP 401`() {
-        val token = Jwt.issuer("api-quarkus")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-admin")
-            .groups(setOf("ADMIN"))
-            .sign()
+        val token =
+            Jwt
+                .issuer("api-quarkus")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-admin")
+                .groups(setOf("ADMIN"))
+                .sign()
 
         val parts = token.split('.')
 
@@ -109,13 +119,15 @@ class UserResourceJwtTest {
     fun `expired RS256 ADMIN token returns HTTP 401`() {
         val now = Instant.now().epochSecond
 
-        val token = Jwt.issuer("api-quarkus")
-            .subject(UUID.randomUUID().toString())
-            .upn("jwt-admin")
-            .groups(setOf("ADMIN"))
-            .claim("iat", now - 3600)
-            .claim("exp", now - 300)
-            .sign()
+        val token =
+            Jwt
+                .issuer("api-quarkus")
+                .subject(UUID.randomUUID().toString())
+                .upn("jwt-admin")
+                .groups(setOf("ADMIN"))
+                .claim("iat", now - 3600)
+                .claim("exp", now - 300)
+                .sign()
 
         val user = TestUserRepository.EXISTING_USER
 
